@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "From Stigma to Support is an Internet Computer (ICP) web application for academic wellness and mental-health support. It uses Internet Identity for authentication and a Motoko canister backend with role-based access control. The app provides user profile onboarding, an anonymous-capable community feed (create/list/edit/delete with basic content checks and admin moderation controls), mood tracking, a stress assessment quiz with saved results, therapy/wellness resources with session-request submission, an emergency helpline/resources page, and a polling-based direct messaging system with read receipts (plus an admin “all messages” view). Admins also get an Outreach Dashboard for rural mental-health outreach operations: reporting and monitoring regions, institutional mapping, outreach camp scheduling, analytics/intelligence views, coordinate-based map visualization, user role assignment, active user tracking, and unique-login counting. The backend additionally includes a blob-storage maintenance mixin for gateway authorization, dead-blob pruning, and cycles refill operations.",
+  "summary": "From Stigma to Support is an Internet Computer (ICP) mental-health and academic-wellness web application. A React (Tailwind/shadcn UI) SPA consumes a Motoko canister backend via an actor interface. Users authenticate with Internet Identity, complete a basic profile, and can use peer-support features such as an anonymous-capable community posting feed (with basic content filtering), mood tracking, and a stress self-assessment quiz with saved results. The app also provides static wellness resources (therapy techniques) and an emergency helpline/resources page. Authenticated users can exchange direct messages with polling-based updates and read receipts, while admins can view all messages. Admins additionally get an Outreach Dashboard for rural mental-health operations: reporting underserved areas, monitoring access levels, mapping institutions, scheduling outreach camps, viewing analytics, and visualizing coordinates on a simplified interactive map with external Google/Apple Maps links. The backend includes role-based access control and a blob-storage maintenance mixin for gateway authorization, dead-blob pruning, and cycles top-up operations.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -10,91 +10,123 @@
         "ICP Internet Identity login",
         "AuthClient session"
       ],
-      "description": "Users authenticate via Internet Identity using AuthClient. The provider loads a stored identity on app startup, exposes login/logout actions, and maintains login status flags for UI gating.",
+      "description": "Users authenticate through Internet Identity using AuthClient. The provider loads an existing identity from storage on startup, exposes login/logout actions, and provides status flags for UI gating.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-2",
-      "title": "Backend actor initialization (anonymous vs authenticated) with access-control bootstrap",
+      "title": "Backend actor initialization (anonymous vs authenticated) and query invalidation on identity changes",
       "synonyms": [
         "Actor hook",
         "Authenticated/anonymous actor"
       ],
-      "description": "Frontend creates an anonymous actor when not logged in and an identity-bound actor when authenticated. On authenticated actor creation it calls a backend initializer that uses an env-provided admin token plus a user-provided secret (from URL hash/session) to register roles.",
+      "description": "Frontend creates an anonymous actor when logged out and an identity-bound actor when logged in. When the actor changes (e.g., identity changes), dependent react-query caches are invalidated/refetched to prevent stale data.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-3",
-      "title": "Role-based access control (admin/user/guest) and role assignment",
+      "title": "Access-control bootstrap using admin token + user secret from URL hash",
       "synonyms": [
-        "AccessControl",
-        "RBAC",
-        "assignUserRole"
+        "_initializeAccessControlWithSecret",
+        "caffeineAdminToken"
       ],
-      "description": "Motoko backend maintains user roles and enforces permissions. Admins can assign roles to principals; callers can query whether they are admin and retrieve their role.",
+      "description": "On authenticated actor creation, the frontend calls a backend initializer with a secret extracted from the URL hash/session. The backend compares the provided secret against an env var admin token to bootstrap the first admin; otherwise callers are registered as normal users.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-4",
-      "title": "Admin bootstrap & auto-promotion flow after login",
+      "title": "Role-based access control (admin/user/guest) and admin role assignment",
       "synonyms": [
-        "checkAndAssignAdmin",
-        "Admin Mode Activated banner"
+        "RBAC",
+        "AccessControl",
+        "assignUserRole"
       ],
-      "description": "After successful authentication, the frontend calls a backend method that may promote the user to admin and then refreshes admin status. UI can display an admin-promotion banner and toast notification.",
+      "description": "Backend tracks user roles and enforces permissions for protected endpoints. Admins can assign roles to any principal; callers can check if they are admin.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-5",
-      "title": "User profile onboarding and storage",
+      "title": "Admin auto-check/promotion flow with UI banner",
       "synonyms": [
-        "Profile setup dialog",
-        "saveCallerUserProfile"
+        "checkAndAssignAdmin",
+        "AdminPromotionBanner"
       ],
-      "description": "Authenticated users create and save a profile (email, name, username, age). The UI enforces basic validation and requires agreement to guidelines before submission; profiles can be fetched later.",
+      "description": "After login, the frontend calls a backend method to confirm/potentially assign admin status, then refreshes admin state and displays an “Admin Mode Activated” banner/toast if promoted.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-6",
-      "title": "Community posts feed (list & create) with anonymity flag",
+      "title": "User profile onboarding and storage",
       "synonyms": [
-        "Community Support page",
-        "Anonymous posting"
+        "Profile setup dialog",
+        "saveCallerUserProfile"
       ],
-      "description": "Users can create posts with an anonymity toggle; posts are stored with timestamps, author principal, and a moderation flag. The frontend lists all posts and sorts them by recency.",
+      "description": "Authenticated users create a basic profile (email, name, username, age). The UI validates fields and requires agreement to guidelines before saving; the profile can be retrieved later.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-7",
-      "title": "Community post editing and deletion with author/admin permissions",
+      "title": "User language preference (backend)",
       "synonyms": [
-        "Edit post",
-        "Delete post",
-        "Post moderation controls"
+        "setUserLanguagePreference",
+        "getUserLanguagePreference"
       ],
-      "description": "Post authors can edit/delete their own posts and admins can edit/delete any post. The UI conditionally shows Edit/Delete actions per post and uses confirmation UI for deletion; backend enforces authorization.",
+      "description": "Backend supports storing and retrieving a per-user language preference (e.g., English/Hindi/Spanish) as part of the user profile record.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-8",
-      "title": "Content checking for community posts (basic inappropriate-word filter)",
+      "title": "Community posts feed (list & create) with anonymity flag",
       "synonyms": [
-        "checkContent",
-        "Bad-words filter"
+        "Community Support page",
+        "Anonymous posting"
       ],
-      "description": "Before creating or saving an edited post, the frontend calls a backend content-check endpoint that rejects text containing configured bad words.",
+      "description": "Users can create community posts with an anonymity toggle. The UI lists all posts and sorts by recency; posts include timestamp, author principal, and moderation flag.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-9",
+      "title": "Community post editing and deletion with author/admin permissions",
+      "synonyms": [
+        "Edit post",
+        "Delete post"
+      ],
+      "description": "Post authors can edit/delete their own posts; admins can edit/delete any post. UI conditionally shows actions and confirms deletions; backend enforces authorization.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-10",
+      "title": "Community post moderation flagging (admin endpoint)",
+      "synonyms": [
+        "moderatePost",
+        "Flagged posts"
+      ],
+      "description": "Backend supports an admin-only action to flag/unflag a post for moderation; posts contain a moderationFlag field that can be displayed in the UI.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "Content checking for posts (basic inappropriate-word filter)",
+      "synonyms": [
+        "checkContent",
+        "Bad-words filter"
+      ],
+      "description": "Before creating or saving edits to community posts, the frontend calls a backend content-check method which rejects text containing configured bad words.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
       "title": "Community guidelines retrieval and display",
       "synonyms": [
         "Guidelines page",
@@ -105,223 +137,225 @@
       "version": 1
     },
     {
-      "id": "IF-10",
+      "id": "IF-13",
       "title": "Therapy & wellness resources hub (static content)",
       "synonyms": [
         "Therapy page",
         "Relaxation / art / music / physiotherapy resources"
       ],
-      "description": "A tabbed UI provides mental-wellness guidance across multiple modalities (relaxation/breathing, art therapy, music therapy, physiotherapy).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-11",
-      "title": "Therapy session request submission",
-      "synonyms": [
-        "createTherapySessionRequest",
-        "Request a session"
-      ],
-      "description": "Authenticated users can submit a therapy session request (type + details) from the Therapy page; backend stores the request with a timestamp.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-12",
-      "title": "Mood tracking (record mood and view history)",
-      "synonyms": [
-        "Mood Tracker",
-        "Mood entries"
-      ],
-      "description": "Authenticated users can add mood entries and view recent mood history with timestamps; the UI provides predefined mood choices with icons and displays recent entries plus basic insights.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-13",
-      "title": "Stress assessment quiz with saved results",
-      "synonyms": [
-        "Stress Quiz",
-        "submitStressQuiz"
-      ],
-      "description": "Multi-step stress quiz records per-question answers, computes a score, displays a stress level with suggestions, and persists results in the backend so prior results can be shown later.",
+      "description": "A tabbed UI provides wellness guidance across relaxation/breathing, art therapy, music therapy, and physiotherapy content.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-14",
-      "title": "Emergency helpline and online resources page",
+      "title": "Therapy session request submission",
       "synonyms": [
-        "Helpline page",
-        "Crisis resources"
+        "createTherapySessionRequest",
+        "Request Session dialog"
       ],
-      "description": "Static frontend page listing crisis helplines and external mental-health resources with emergency disclaimers and outbound links.",
+      "description": "Authenticated users can submit a therapy session request (type + details). Backend stores the request with a timestamp; admins can fetch all requests via an admin-only endpoint.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-15",
-      "title": "Direct messaging system with polling and read receipts",
+      "title": "Mood tracking (record mood and view history)",
       "synonyms": [
-        "Messages",
-        "DMs",
-        "markMessageAsRead"
+        "Mood Tracker",
+        "Mood entries"
       ],
-      "description": "Authenticated users can send messages to a principal, view their messages grouped into conversations, and mark received messages as read; UI polls periodically for updates and displays read status on sent messages.",
+      "description": "Authenticated users can record a mood entry and view a list of recent mood entries with timestamps; UI provides predefined mood choices with icons and basic insights.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-16",
-      "title": "Admin global messages view",
+      "title": "Stress assessment quiz with saved results",
       "synonyms": [
-        "All Messages (Admin)",
-        "Moderation messaging view"
+        "Stress Quiz",
+        "submitStressQuiz"
       ],
-      "description": "Admins can fetch and browse all messages system-wide in an admin-only tab, enabling oversight of conversations and support-marked messages.",
+      "description": "Multi-step quiz captures responses, computes a score with guidance, and persists results in the backend so prior results can be displayed later.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-17",
-      "title": "Active user tracking (backend) with admin visibility",
+      "title": "Emergency helpline and online resources page",
       "synonyms": [
-        "updateUserActivity",
-        "getActiveUsers"
+        "Helpline page",
+        "Crisis resources"
       ],
-      "description": "Backend records per-user activity timestamps on key actions and via an explicit endpoint; admins can query active users for operational monitoring.",
+      "description": "Static page listing crisis helplines and online resources, with emergency disclaimers and outbound links.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-18",
-      "title": "Unique login tracking and admin-only count display",
+      "title": "Direct messaging system with polling updates and read receipts",
       "synonyms": [
-        "recordSuccessfulLogin",
-        "getUniqueLoginsCount"
+        "Messages",
+        "DMs",
+        "markMessageAsRead"
       ],
-      "description": "On successful login, the frontend records an authenticated login event; admins can retrieve and display the count of unique authenticated principals that have logged in.",
+      "description": "Authenticated users can send messages to a principal, view messages grouped by conversation, and mark messages as read; UI polls periodically for new messages and shows sent-message read status.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-19",
+      "title": "Admin global message visibility",
+      "synonyms": [
+        "All Messages (Admin)",
+        "Message oversight"
+      ],
+      "description": "Admins can fetch and browse all messages system-wide in an admin-only view, including support-marked messages.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-20",
+      "title": "Active user tracking and admin visibility",
+      "synonyms": [
+        "updateUserActivity",
+        "getActiveUsers"
+      ],
+      "description": "Backend records per-user activity timestamps; admins can query active users. Frontend periodically refetches the active-user list for near-real-time monitoring.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-21",
+      "title": "Unique login tracking and admin-only count",
+      "synonyms": [
+        "recordSuccessfulLogin",
+        "getUniqueLoginsCount"
+      ],
+      "description": "On successful login, the frontend records a login event; admins can query and display the count of unique authenticated principals that have logged in.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-22",
       "title": "Rural area reporting and admin campaign updates",
       "synonyms": [
         "Reported areas",
         "reportArea",
         "updateAreaCampaigns"
       ],
-      "description": "Users can report underserved regions with connectivity status, description, linked campaigns, mental-health support availability, and coordinates; admins can view reports and update linked campaigns per region.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-20",
-      "title": "Institutional awareness mapping (admin CRUD) with coordinates",
-      "synonyms": [
-        "Institutions module",
-        "addInstitution/updateInstitution"
-      ],
-      "description": "Admins can add and update institutions with type, region, contact info, infrastructure status, awareness rating, related campaigns, and coordinates; data is used in dashboard views and map markers.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-21",
-      "title": "Rural/low-access area monitoring (admin CRUD) with heatmap and map/list view",
-      "synonyms": [
-        "Area monitoring",
-        "Heatmap visualization"
-      ],
-      "description": "Admins can add/update monitored areas with access level, connectivity status, description, campaigns, and coordinates. The UI provides a heatmap-like visualization plus a map/list toggle and network-strength-based fallback to list view.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-22",
-      "title": "Offline outreach camp scheduling (admin CRUD) with clinician assignment",
-      "synonyms": [
-        "Outreach camps",
-        "Camp scheduling"
-      ],
-      "description": "Admins can schedule and update outreach camps including dates, event type, status, optional clinician principal assignment, description, and coordinates.",
+      "description": "Users can report underserved regions (connectivity status, description, linked campaigns, support availability, coordinates). Admins can view reports and update linked campaigns per region.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-23",
-      "title": "Outreach dashboard analytics & intelligence views (admin-only)",
+      "title": "Institutional awareness mapping (admin CRUD) with coordinates",
       "synonyms": [
-        "getDashboardAnalytics",
-        "Intelligence dashboard"
+        "Institutions module",
+        "addInstitution/updateInstitution"
       ],
-      "description": "Backend provides aggregate metrics (institutions, monitored areas, camps, campaigns, awareness averages, distressed/low-access regions, upcoming events). The admin UI displays these metrics plus alert/recommendation sections.",
+      "description": "Admins can add and update institutions (type, region, contact info, infrastructure status, awareness rating, related campaigns, coordinates) for outreach planning and map visualization.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-24",
-      "title": "Interactive outreach map visualization with external map links",
+      "title": "Rural/low-access area monitoring (admin CRUD) with heatmap and map/list views",
       "synonyms": [
-        "OutreachInteractiveMap",
-        "Google/Apple Maps links"
+        "Area monitoring",
+        "Heatmap visualization"
       ],
-      "description": "Frontend renders a simplified interactive map showing markers for institutions, monitored areas, camps, and reported areas with coordinates; supports selecting markers, satellite/standard toggle, and opening locations in Google Maps or Apple Maps.",
+      "description": "Admins can add/update monitored areas (access level, connectivity, description, campaigns, coordinates). UI provides a heatmap-like visualization, plus map/list toggles and automatic fallback to list view on poor network strength.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-25",
-      "title": "Share website dialog",
+      "title": "Offline outreach camp scheduling (admin CRUD) with clinician assignment",
       "synonyms": [
-        "Social sharing",
-        "Copy link"
+        "Outreach camps",
+        "Camp scheduling"
       ],
-      "description": "A dialog provides sharing actions for WhatsApp, Facebook, Twitter/X, and Instagram (copy link), generating platform-specific share URLs and using clipboard copy where needed.",
+      "description": "Admins can schedule and update outreach camps (dates, event type, status, optional clinician principal assignment, description, coordinates).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-26",
-      "title": "Calming breathing animation component",
+      "title": "Outreach dashboard analytics & intelligence views (admin-only)",
       "synonyms": [
-        "Breathing orb",
-        "Relaxation animation"
+        "getDashboardAnalytics",
+        "Intelligence dashboard"
       ],
-      "description": "Animated breathing UI alternates inhale/exhale states on a timed interval with smooth transitions and instructional text, integrated on the home page to encourage calming techniques.",
+      "description": "Backend provides aggregate metrics (institutions, monitored areas, camps, campaigns, awareness averages, distressed/low-access regions, upcoming events). The admin dashboard renders metrics, alerts, and recommendations.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-27",
-      "title": "SPA shell: navigation, layout, and theming",
+      "title": "Interactive outreach map visualization with external map links",
       "synonyms": [
-        "Header/Footer navigation",
-        "Manual routing",
-        "Dark mode"
+        "OutreachInteractiveMap",
+        "Google/Apple Maps links"
       ],
-      "description": "The app uses a shared layout with Header/Footer, manually routed pages via app state, auth/admin-gated navigation items, global toast notifications, and light/dark theme switching via next-themes.",
+      "description": "Frontend renders a simplified interactive map with markers for institutions, monitored areas, camps, and reported areas that have coordinates; supports selecting markers, a satellite/standard toggle, and opening in Google Maps or Apple Maps.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-28",
-      "title": "Blob storage maintenance endpoints (gateway auth, dead-blob pruning, cycles refill)",
+      "title": "Blob storage maintenance endpoints (gateway auth, dead-blob pruning, cycles top-up)",
       "synonyms": [
         "Caffeine storage mixin",
         "Dead blob GC",
-        "Cashier top-up"
+        "Cashier refill"
       ],
-      "description": "Backend includes a storage maintenance mixin that can sync authorized gateway principals, list/prune dead blobs (with a GC trigger), check blob liveness, and perform cycles refill/top-up operations guarded by a cashier principal env var.",
+      "description": "Backend includes a storage maintenance mixin to sync authorized gateway principals, list/prune dead blobs (with a GC trigger), check blob liveness, and top up cycles via a cashier principal guarded by env vars.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "feature-remove-the-share-option-ui-control-rendered-in-the-app-header-the-sharewebsitedialog-trigger-button-and-keep-the-rest-of-the-header-layout-behavior-unchanged",
-      "title": "Remove the Share option UI control rendered in the app header (the ShareWebsiteDialog trigger button) and keep the rest of the header layout/behavior unchanged.",
+      "id": "IF-29",
+      "title": "SPA shell: navigation, gated routes, theming, and toasts",
+      "synonyms": [
+        "Header/Footer layout",
+        "Manual routing",
+        "Dark mode"
+      ],
+      "description": "App uses a shared layout with Header/Footer, state-based page navigation, auth/admin-gated nav items (Messages/Outreach), light/dark theming via next-themes, and global toast notifications via sonner.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-30",
+      "title": "Website sharing dialog (available in footer)",
+      "synonyms": [
+        "ShareWebsiteDialog",
+        "Social sharing"
+      ],
+      "description": "A dialog provides sharing actions for WhatsApp, Facebook, Twitter/X, and Instagram (copy link), opening platform-specific share URLs or copying the app URL to clipboard.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-31",
+      "title": "Header share control removed while preserving header layout",
+      "synonyms": [
+        "Remove header share button",
+        "REQ-1"
+      ],
+      "description": "The ShareWebsiteDialog trigger button is not rendered in the app header; the rest of the header layout and behavior remains unchanged.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-community-page-so-that-admins-do-not-have-the-ability-to-edit-community-posts-via-the-ui-editing-should-be-allowed-only-for-the-original-post-author-authenticated-user-whose-principal-matches-post-author-while-delete-behavior-should-remain-unchanged-admins-can-still-delete-any-post-users-can-delete-their-own",
+      "title": "Update the Community page so that admins do not have the ability to edit community posts via the UI. Editing should be allowed only for the original post author (authenticated user whose principal matches post.author), while delete behavior should remain unchanged (admins can still delete any post; users can delete their own).",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -329,36 +363,43 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Remove only the website sharing option (WhatsApp/Facebook/Instagram/Twitter/Messenger); keep everything else unchanged.",
+      "summary": "Remove the edit option for admins on community posts (admins should no longer be able to edit posts via the UI; keep other behavior unchanged).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Remove the website sharing option (WhatsApp/Facebook/Instagram/Twitter/Messenger share controls) while keeping everything else unchanged.",
       "reqIds": [],
       "status": "pending"
     }
   ],
   "architectural_notes": [
-    "ICP canister backend implemented in Motoko, exposing query/shared methods consumed by a React SPA via an autogenerated actor interface.",
-    "Authentication via Internet Identity (AuthClient + DelegationIdentity) provided through a React context, with persisted identity loading on app startup.",
-    "Frontend creates an anonymous or identity-bound backend actor; on authenticated actor creation it calls a backend access-control initialization method using an env-protected admin token plus a user-provided secret.",
-    "Role-based access control (admin/user/guest) is enforced server-side through an AccessControl module; endpoints trap on unauthorized access.",
-    "Frontend data access uses @tanstack/react-query with principal-scoped query keys and mutation-triggered cache invalidation.",
-    "Manual client-side page routing is implemented via React state (no react-router), with Header/Footer navigation and auth/admin-gated nav items.",
-    "Near-real-time UX is achieved via polling (react-query refetchInterval) for messaging and active-user lists.",
-    "Admin Outreach Dashboard is a tabbed, dialog-driven management UI integrating CRUD workflows and analytics views (including map/list modes).",
-    "UI is built with TailwindCSS and shadcn/ui-style components; theme switching uses next-themes for light/dark modes.",
-    "Blob storage maintenance endpoints are provided via a Motoko mixin (gateway principal sync, dead blob enumeration/pruning, and cashier cycles top-ups)."
+    "ICP canister backend written in Motoko, exposing query/shared methods consumed by a React SPA through a generated actor interface.",
+    "Authentication via Internet Identity (AuthClient/DelegationIdentity) provided as a React context with persisted identity loading on app startup.",
+    "Frontend creates anonymous vs identity-bound actors; on authenticated actor creation it calls an access-control initialization method using an env-protected admin token and a user-provided secret pulled from the URL hash.",
+    "Role-based access control (admin/user/guest) is centralized in an AccessControl module and enforced server-side (Runtime.trap on unauthorized).",
+    "Data fetching and mutations use @tanstack/react-query with principal-scoped query keys and mutation-driven cache invalidation.",
+    "Manual client-side routing is implemented with React state (no react-router), with auth/admin-gated navigation items in the Header.",
+    "Near-real-time UX relies on polling (react-query refetchInterval) for messages and active-user lists.",
+    "Admin Outreach Dashboard is a tabbed, dialog-driven CRUD + analytics UI, with map/list toggles and network-strength-based fallback behavior.",
+    "UI stack uses TailwindCSS + shadcn/ui-style primitives, with theming via next-themes and toast notifications via sonner.",
+    "Backend composes functionality via Motoko mixins (authorization mixin and a blob-storage maintenance mixin)."
   ],
   "known_issues": [
-    "Motoko collection mutation semantics may be incorrect: List.add(...) and Set.add(...) are used without clearly capturing returned values; if these structures are persistent/immutable in mo:core, mood history, message conversation indexes, and unique login tracking may not persist as intended.",
-    "addMoodEntry overwrites existing mood history and appears to duplicate the newest entry (creates a list with entry and then adds entry again), so users may not see a real history over time.",
-    "sendMessage updates userConversations using List.add on an existing list without re-inserting it into the map; depending on List mutability, conversation message IDs may not be recorded, causing getMessagesByUser/getUserConversations to return incomplete data.",
-    "checkAndAssignAdmin promotes the first authenticated caller to admin even without providing a valid admin secret token, undermining the intended token-gated admin bootstrap model.",
-    "Therapy session requests are stored as Map<Principal, TherapySessionRequest>, so each user can only have one request; new submissions overwrite prior requests.",
-    "adminConversations is never populated in the backend, so getAdminConversations will always return an empty list (and is currently unused by the frontend, which instead uses getAllMessages).",
+    "Backend addMoodEntry logic appears incorrect: it overwrites prior mood history (does not incorporate existing list) and duplicates the newly created entry.",
+    "Messaging conversation indexing may be unreliable: sendMessage mutates an existing List without re-adding it to the userConversations map (depending on List semantics), potentially losing message IDs for existing users.",
+    "Unique-login tracking may not persist as intended: uniqueLoginSet is declared as a let Set and is updated via uniqueLoginSet.add(...) without assignment (depending on Set mutability/semantics).",
+    "checkAndAssignAdmin can self-assign the first authenticated caller as admin even without supplying the intended admin secret token, undermining token-gated admin bootstrap.",
+    "MessagesPage marks messages as read during render (inside the map loop), which can trigger repeated backend writes and unpredictable behavior (especially under React strict-mode).",
     "CommunityPostCard always displays an “Anonymous” badge regardless of the post.anonymous flag, so non-anonymous posts are not visually distinguished.",
-    "Several lists are sorted using Number(b.timestamp - a.timestamp) where timestamps are nanosecond bigints; converting large nanosecond values to Number can lose precision and may cause incorrect ordering.",
-    "MessagesPage marks messages as read during render (inside the message map), which can trigger repeated backend writes and unpredictable behavior (especially under React strict-mode double-invocation).",
-    "Blob storage cashier principal env var name is \"CAFFFEINE_STORAGE_CASHIER_PRINCIPAL\" (triple 'F'), which is likely a typo and can cause runtime traps if deployments use the expected spelling."
+    "Several UI sorts compute Number(bigintTimestampDifference); converting large nanosecond timestamps to Number can lose precision and cause incorrect ordering.",
+    "getAllCommunityPosts is publicly queryable (no auth check); if posts are intended to be private to authenticated users, this is a privacy mismatch.",
+    "ShareWebsiteDialog includes a Messenger share URL with placeholder app_id (\"YOUR_APP_ID\"), so that path is not functional as-is.",
+    "Blob-storage cashier env var name is \"CAFFFEINE_STORAGE_CASHIER_PRINCIPAL\" (triple 'F'), which is likely a typo and can cause deployment/runtime configuration issues."
   ],
   "isFixRequest": false,
+  "generatedImages": [],
   "gameProjectType": "none",
   "projectName": "From Stigma to Support",
   "clarification_mode": "instant",

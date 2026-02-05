@@ -1,21 +1,22 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove Share option from header only",
+  "title": "Community posts: restrict edit UI to post author only",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Remove the ShareWebsiteDialog trigger/button from the app header while leaving all other header layout and behavior unchanged.",
+      "id": "REQ-2",
+      "summary": "Update Community page permissions so the Edit UI is shown only to the original post author (principal match), even if the viewer is an admin; keep delete controls unchanged (admins can still delete any post).",
       "acceptanceCriteria": [
-        "The header no longer renders the ShareWebsiteDialog trigger/button (i.e., no share icon/button/menu entry is visible in the header).",
-        "All other header elements remain the same (logo/home button, navigation items, login/logout button, and mobile menu button still function as before).",
-        "No backend changes are introduced."
+        "When logged in as an admin, the Edit button is not shown for posts authored by other users.",
+        "When logged in as an admin, the Edit button is shown only for posts where the admin is also the author.",
+        "When logged in as a non-admin user, the Edit button is shown only for that user's own posts (no change from current expected behavior).",
+        "Delete controls remain unchanged: admins can delete any post; non-admin users can delete only their own posts."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/pages/CommunityPage.tsx",
           "operation": "modify",
-          "description": "Remove the ShareWebsiteDialog import and the <ShareWebsiteDialog /> render from the header actions area, keeping the surrounding layout/spacing and all other header logic (auth button, nav items, mobile menu toggle) unchanged."
+          "description": "Adjust the computed canEditPost logic so it returns true only when the authenticated user's principal matches post.author, and does not grant edit rights based on admin status. Keep canDeletePost logic as-is so admins can still delete any post and users can delete their own posts. Use the selected \"authorization\" component’s frontend guidance for comparing the current user's principal (from useInternetIdentity identity.getPrincipal()) with post.author. Verify the component's usage instructions before implementing."
         }
       ]
     }

@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-share-option-ui-control-rendered-in-the-app-header-the-sharewebsitedialog-trigger-button-and-keep-the-rest-of-the-header-layout-behavior-unchanged",
-      "featureTitle": "Remove the Share option UI control rendered in the app header (the ShareWebsiteDialog trigger button) and keep the rest of the header layout/behavior unchanged.",
+      "featureId": "feature-update-the-community-page-so-that-admins-do-not-have-the-ability-to-edit-community-posts-via-the-ui-editing-should-be-allowed-only-for-the-original-post-author-authenticated-user-whose-principal-matches-post-author-while-delete-behavior-should-remain-unchanged-admins-can-still-delete-any-post-users-can-delete-their-own",
+      "featureTitle": "Update the Community page so that admins do not have the ability to edit community posts via the UI. Editing should be allowed only for the original post author (authenticated user whose principal matches post.author), while delete behavior should remain unchanged (admins can still delete any post; users can delete their own).",
       "files": [
-        "frontend/src/components/Header.tsx"
+        "frontend/src/pages/CommunityPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -17,7 +17,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-2"
       ],
       "confidence": "high"
     }

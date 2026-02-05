@@ -5,7 +5,7 @@
   "frontend/src/components/Footer.tsx": "Simple footer component with branding and attribution link to caffeine.ai.",
   "frontend/src/components/ProfileSetupDialog.tsx": "Modal dialog for first-time user profile creation with form validation and community guidelines agreement.",
   "frontend/src/pages/HomePage.tsx": "Landing page with hero section, breathing animation positioned below the hero image and description, feature cards for navigation, and call-to-action section for the wellness application.",
-  "frontend/src/pages/CommunityPage.tsx": "Community support page with post creation form, content filtering, anonymous post display with timestamps, role-based edit and delete functionality (author or admin can edit/delete posts) using the new CommunityPostCard component, and authenticated-only Direct Messages CTA button.",
+  "frontend/src/pages/CommunityPage.tsx": "Community support page with post creation form, content filtering, anonymous post display with timestamps, and role-based permissions where only post authors can edit their posts and admins can delete any post while users can delete only their own posts.",
   "frontend/src/pages/TherapyPage.tsx": "Therapy resources page with tabbed content for relaxation, art therapy, music therapy, physiotherapy, and session request form.",
   "frontend/src/pages/MoodTrackerPage.tsx": "Mood tracking interface with mood selection icons, history display, and insights for authenticated users.",
   "frontend/src/pages/StressQuizPage.tsx": "Interactive stress assessment quiz with progress tracking, score calculation, and personalized suggestions based on results.",

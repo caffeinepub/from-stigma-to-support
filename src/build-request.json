@@ -1,34 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Remove the Share option button from the header (no other changes)",
+  "title": "Remove admin edit option for community posts",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Remove the Share option UI control rendered in the app header (the ShareWebsiteDialog trigger button) and keep the rest of the header layout/behavior unchanged.",
+      "id": "REQ-2",
+      "text": "Update the Community page so that admins do not have the ability to edit community posts via the UI. Editing should be allowed only for the original post author (authenticated user whose principal matches post.author), while delete behavior should remain unchanged (admins can still delete any post; users can delete their own).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-5"
         ],
         "quotes": [
-          "Remove only the share option,change nothing else,everything same except the share optipn"
+          "Remove the edit option for admin in the  community post"
         ]
       },
       "acceptanceCriteria": [
-        "The header no longer renders the ShareWebsiteDialog trigger/button (i.e., no share icon/button/menu entry is visible in the header).",
-        "All other header elements remain the same (logo/home button, navigation items, login/logout button, and mobile menu button still function as before).",
-        "No backend changes are introduced."
+        "When logged in as an admin, the Edit button is not shown for posts authored by other users.",
+        "When logged in as an admin, the Edit button is shown only for posts where the admin is also the author.",
+        "When logged in as a non-admin user, the Edit button is shown only for that user's own posts (no change from current expected behavior).",
+        "Delete controls remain unchanged: admins can delete any post; non-admin users can delete only their own posts."
       ]
     }
   ],
   "constraints": [
-    "Apply changes only to the selected header element context (share option in the header) and do not modify unrelated UI or flows."
+    "Do not modify any files under frontend/src/components/ui (read-only components).",
+    "Keep the backend single-actor architecture (no new canisters/services)."
   ],
   "nonGoals": [
-    "Do not change the Footer share option.",
-    "Do not modify ShareWebsiteDialog behavior or content beyond removing its header trigger.",
-    "Do not change authentication, navigation, or styling/theme elsewhere."
+    "Do not change backend authorization rules for editing community posts (this request is UI behavior only).",
+    "Do not change community post deletion permissions.",
+    "Do not change any website sharing behavior (already handled by a separate request)."
   ],
   "imageRequirements": {
     "required": [],

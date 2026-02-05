@@ -59,9 +59,7 @@ export default function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   const canEditPost = (post: typeof posts[0]) => {
     if (!isAuthenticated) return false;
-    // Admin can edit any post
-    if (isAdmin) return true;
-    // User can edit their own post
+    // Only the post author can edit their own post
     return post.author.toString() === currentUserPrincipal;
   };
 
