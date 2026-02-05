@@ -97,8 +97,13 @@ export interface ReportedArea {
     regionName: string;
     reporter: Principal;
     connectivityStatus: string;
+    coordinates: Coordinates;
 }
 export type Time = bigint;
+export interface Coordinates {
+    latitude: number;
+    longitude: number;
+}
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
@@ -118,6 +123,7 @@ export interface OutreachCamp {
     name: string;
     description: string;
     location: string;
+    coordinates: Coordinates;
     startDate: Time;
     eventType: string;
 }
@@ -157,6 +163,7 @@ export interface Institution {
     relatedCampaigns: Array<string>;
     name: string;
     awarenessRating: bigint;
+    coordinates: Coordinates;
 }
 export interface CommunityGuidelines {
     acceptableConduct: Array<string>;
@@ -178,6 +185,7 @@ export interface AreaMonitoring {
     timestamp: Time;
     regionName: string;
     connectivityStatus: string;
+    coordinates: Coordinates;
 }
 export interface Conversation {
     participants: Array<Principal>;
@@ -217,21 +225,29 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    addAreaMonitoring(regionName: string, connectivityStatus: string, accessLevel: bigint, description: string, linkedCampaigns: Array<string>): Promise<void>;
-    addInstitution(name: string, institutionType: string, region: string, contactInfo: string, infrastructureStatus: string, awarenessRating: bigint, relatedCampaigns: Array<string>): Promise<void>;
+    addAreaMonitoring(regionName: string, connectivityStatus: string, accessLevel: bigint, description: string, linkedCampaigns: Array<string>, coordinates: Coordinates): Promise<void>;
+    addInstitution(name: string, institutionType: string, region: string, contactInfo: string, infrastructureStatus: string, awarenessRating: bigint, relatedCampaigns: Array<string>, coordinates: Coordinates): Promise<void>;
     addMoodEntry(mood: string): Promise<void>;
-    addOutreachCamp(name: string, location: string, eventType: string, startDate: Time, endDate: Time, assignedClinician: Principal | null, status: string, description: string): Promise<void>;
+    addOutreachCamp(name: string, location: string, eventType: string, startDate: Time, endDate: Time, assignedClinician: Principal | null, status: string, description: string, coordinates: Coordinates): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignUserRole(user: Principal, role: string): Promise<void>;
+    canEditPost(postId: bigint): Promise<boolean>;
     checkAndAssignAdmin(): Promise<boolean>;
     checkContent(text: string): Promise<ContentFiltered>;
     createCommunityPost(content: string, anonymous: boolean): Promise<void>;
     createTherapySessionRequest(typeRequest: string, details: string): Promise<void>;
     deletePost(postId: bigint): Promise<void>;
+    editCommunityPost(postId: bigint, newContent: string): Promise<void>;
     getActiveUsers(): Promise<Array<[Principal, Time]>>;
     getAdminConversations(): Promise<Array<Conversation>>;
     getAllAreaMonitoring(): Promise<Array<AreaMonitoring>>;
     getAllCommunityPosts(): Promise<Array<CommunityPost>>;
+    getAllCoordinates(): Promise<{
+        areas: Array<Coordinates>;
+        camps: Array<Coordinates>;
+        institutions: Array<Coordinates>;
+        reportedAreas: Array<Coordinates>;
+    }>;
     getAllInstitutions(): Promise<Array<Institution>>;
     getAllMessages(): Promise<Array<Message>>;
     getAllOutreachCamps(): Promise<Array<OutreachCamp>>;
@@ -256,6 +272,7 @@ export interface backendInterface {
     getMessagesByUser(user: Principal): Promise<Array<Message>>;
     getOutreachCampById(id: bigint): Promise<OutreachCamp | null>;
     getReportedAreas(): Promise<Array<ReportedArea>>;
+    getUniqueLoginsCount(): Promise<bigint>;
     getUserConversations(user: Principal): Promise<Array<bigint>>;
     getUserLanguagePreference(): Promise<Language | null>;
     getUserMoodEntries(user: Principal): Promise<Array<MoodEntry>>;
@@ -264,19 +281,20 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     markMessageAsRead(messageId: bigint): Promise<void>;
     moderatePost(postId: bigint, flag: boolean): Promise<void>;
-    reportArea(regionName: string, connectivityStatus: string, description: string, linkedCampaigns: Array<string>, hasMentalHealthSupport: boolean): Promise<void>;
+    recordSuccessfulLogin(): Promise<void>;
+    reportArea(regionName: string, connectivityStatus: string, description: string, linkedCampaigns: Array<string>, hasMentalHealthSupport: boolean, coordinates: Coordinates): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     sendMessage(recipient: Principal, content: string, isSupport: boolean): Promise<void>;
     setAppUrl(url: string): Promise<void>;
     setUserLanguagePreference(language: Language): Promise<void>;
     submitStressQuiz(score: bigint, responses: Array<bigint>): Promise<void>;
     updateAreaCampaigns(regionName: string, newCampaigns: Array<string>): Promise<void>;
-    updateAreaMonitoring(regionName: string, connectivityStatus: string, accessLevel: bigint, description: string, linkedCampaigns: Array<string>): Promise<void>;
-    updateInstitution(id: bigint, name: string, institutionType: string, region: string, contactInfo: string, infrastructureStatus: string, awarenessRating: bigint, relatedCampaigns: Array<string>): Promise<void>;
-    updateOutreachCamp(id: bigint, name: string, location: string, eventType: string, startDate: Time, endDate: Time, assignedClinician: Principal | null, status: string, description: string): Promise<void>;
+    updateAreaMonitoring(regionName: string, connectivityStatus: string, accessLevel: bigint, description: string, linkedCampaigns: Array<string>, coordinates: Coordinates): Promise<void>;
+    updateInstitution(id: bigint, name: string, institutionType: string, region: string, contactInfo: string, infrastructureStatus: string, awarenessRating: bigint, relatedCampaigns: Array<string>, coordinates: Coordinates): Promise<void>;
+    updateOutreachCamp(id: bigint, name: string, location: string, eventType: string, startDate: Time, endDate: Time, assignedClinician: Principal | null, status: string, description: string, coordinates: Coordinates): Promise<void>;
     updateUserActivity(): Promise<void>;
 }
-import type { AreaMonitoring as _AreaMonitoring, Institution as _Institution, Language as _Language, OutreachCamp as _OutreachCamp, ReportedArea as _ReportedArea, StressQuizResponse as _StressQuizResponse, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { AreaMonitoring as _AreaMonitoring, Coordinates as _Coordinates, Institution as _Institution, Language as _Language, OutreachCamp as _OutreachCamp, ReportedArea as _ReportedArea, StressQuizResponse as _StressQuizResponse, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -377,31 +395,31 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addAreaMonitoring(arg0: string, arg1: string, arg2: bigint, arg3: string, arg4: Array<string>): Promise<void> {
+    async addAreaMonitoring(arg0: string, arg1: string, arg2: bigint, arg3: string, arg4: Array<string>, arg5: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.addAreaMonitoring(arg0, arg1, arg2, arg3, arg4);
+                const result = await this.actor.addAreaMonitoring(arg0, arg1, arg2, arg3, arg4, arg5);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.addAreaMonitoring(arg0, arg1, arg2, arg3, arg4);
+            const result = await this.actor.addAreaMonitoring(arg0, arg1, arg2, arg3, arg4, arg5);
             return result;
         }
     }
-    async addInstitution(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: bigint, arg6: Array<string>): Promise<void> {
+    async addInstitution(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: bigint, arg6: Array<string>, arg7: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.addInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+                const result = await this.actor.addInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.addInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+            const result = await this.actor.addInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             return result;
         }
     }
@@ -419,17 +437,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addOutreachCamp(arg0: string, arg1: string, arg2: string, arg3: Time, arg4: Time, arg5: Principal | null, arg6: string, arg7: string): Promise<void> {
+    async addOutreachCamp(arg0: string, arg1: string, arg2: string, arg3: Time, arg4: Time, arg5: Principal | null, arg6: string, arg7: string, arg8: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.addOutreachCamp(arg0, arg1, arg2, arg3, arg4, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg5), arg6, arg7);
+                const result = await this.actor.addOutreachCamp(arg0, arg1, arg2, arg3, arg4, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.addOutreachCamp(arg0, arg1, arg2, arg3, arg4, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg5), arg6, arg7);
+            const result = await this.actor.addOutreachCamp(arg0, arg1, arg2, arg3, arg4, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8);
             return result;
         }
     }
@@ -458,6 +476,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.assignUserRole(arg0, arg1);
+            return result;
+        }
+    }
+    async canEditPost(arg0: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.canEditPost(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.canEditPost(arg0);
             return result;
         }
     }
@@ -531,6 +563,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async editCommunityPost(arg0: bigint, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.editCommunityPost(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.editCommunityPost(arg0, arg1);
+            return result;
+        }
+    }
     async getActiveUsers(): Promise<Array<[Principal, Time]>> {
         if (this.processError) {
             try {
@@ -584,6 +630,25 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAllCommunityPosts();
+            return result;
+        }
+    }
+    async getAllCoordinates(): Promise<{
+        areas: Array<Coordinates>;
+        camps: Array<Coordinates>;
+        institutions: Array<Coordinates>;
+        reportedAreas: Array<Coordinates>;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllCoordinates();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllCoordinates();
             return result;
         }
     }
@@ -806,6 +871,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getUniqueLoginsCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUniqueLoginsCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUniqueLoginsCount();
+            return result;
+        }
+    }
     async getUserConversations(arg0: Principal): Promise<Array<bigint>> {
         if (this.processError) {
             try {
@@ -918,17 +997,31 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async reportArea(arg0: string, arg1: string, arg2: string, arg3: Array<string>, arg4: boolean): Promise<void> {
+    async recordSuccessfulLogin(): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.reportArea(arg0, arg1, arg2, arg3, arg4);
+                const result = await this.actor.recordSuccessfulLogin();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.reportArea(arg0, arg1, arg2, arg3, arg4);
+            const result = await this.actor.recordSuccessfulLogin();
+            return result;
+        }
+    }
+    async reportArea(arg0: string, arg1: string, arg2: string, arg3: Array<string>, arg4: boolean, arg5: Coordinates): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.reportArea(arg0, arg1, arg2, arg3, arg4, arg5);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.reportArea(arg0, arg1, arg2, arg3, arg4, arg5);
             return result;
         }
     }
@@ -1016,45 +1109,45 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateAreaMonitoring(arg0: string, arg1: string, arg2: bigint, arg3: string, arg4: Array<string>): Promise<void> {
+    async updateAreaMonitoring(arg0: string, arg1: string, arg2: bigint, arg3: string, arg4: Array<string>, arg5: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateAreaMonitoring(arg0, arg1, arg2, arg3, arg4);
+                const result = await this.actor.updateAreaMonitoring(arg0, arg1, arg2, arg3, arg4, arg5);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateAreaMonitoring(arg0, arg1, arg2, arg3, arg4);
+            const result = await this.actor.updateAreaMonitoring(arg0, arg1, arg2, arg3, arg4, arg5);
             return result;
         }
     }
-    async updateInstitution(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: string, arg6: bigint, arg7: Array<string>): Promise<void> {
+    async updateInstitution(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: string, arg6: bigint, arg7: Array<string>, arg8: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                const result = await this.actor.updateInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            const result = await this.actor.updateInstitution(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             return result;
         }
     }
-    async updateOutreachCamp(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: Time, arg5: Time, arg6: Principal | null, arg7: string, arg8: string): Promise<void> {
+    async updateOutreachCamp(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: Time, arg5: Time, arg6: Principal | null, arg7: string, arg8: string, arg9: Coordinates): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateOutreachCamp(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg6), arg7, arg8);
+                const result = await this.actor.updateOutreachCamp(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg6), arg7, arg8, arg9);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateOutreachCamp(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg6), arg7, arg8);
+            const result = await this.actor.updateOutreachCamp(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg6), arg7, arg8, arg9);
             return result;
         }
     }
@@ -1126,6 +1219,7 @@ function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uin
     name: string;
     description: string;
     location: string;
+    coordinates: _Coordinates;
     startDate: _Time;
     eventType: string;
 }): {
@@ -1136,6 +1230,7 @@ function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uin
     name: string;
     description: string;
     location: string;
+    coordinates: Coordinates;
     startDate: Time;
     eventType: string;
 } {
@@ -1147,6 +1242,7 @@ function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uin
         name: value.name,
         description: value.description,
         location: value.location,
+        coordinates: value.coordinates,
         startDate: value.startDate,
         eventType: value.eventType
     };

@@ -17,6 +17,7 @@ export interface AreaMonitoring {
   'timestamp' : Time,
   'regionName' : string,
   'connectivityStatus' : string,
+  'coordinates' : Coordinates,
 }
 export interface CommunityGuidelines {
   'acceptableConduct' : Array<string>,
@@ -38,6 +39,7 @@ export interface Conversation {
   'participants' : Array<Principal>,
   'messages' : Array<Message>,
 }
+export interface Coordinates { 'latitude' : number, 'longitude' : number }
 export interface Institution {
   'id' : bigint,
   'region' : string,
@@ -47,6 +49,7 @@ export interface Institution {
   'relatedCampaigns' : Array<string>,
   'name' : string,
   'awarenessRating' : bigint,
+  'coordinates' : Coordinates,
 }
 export type Language = { 'tamil' : null } |
   { 'hindi' : null } |
@@ -74,6 +77,7 @@ export interface OutreachCamp {
   'name' : string,
   'description' : string,
   'location' : string,
+  'coordinates' : Coordinates,
   'startDate' : Time,
   'eventType' : string,
 }
@@ -85,6 +89,7 @@ export interface ReportedArea {
   'regionName' : string,
   'reporter' : Principal,
   'connectivityStatus' : string,
+  'coordinates' : Coordinates,
 }
 export interface StressQuizResponse {
   'responses' : Array<bigint>,
@@ -138,29 +143,59 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAreaMonitoring' : ActorMethod<
-    [string, string, bigint, string, Array<string>],
+    [string, string, bigint, string, Array<string>, Coordinates],
     undefined
   >,
   'addInstitution' : ActorMethod<
-    [string, string, string, string, string, bigint, Array<string>],
+    [
+      string,
+      string,
+      string,
+      string,
+      string,
+      bigint,
+      Array<string>,
+      Coordinates,
+    ],
     undefined
   >,
   'addMoodEntry' : ActorMethod<[string], undefined>,
   'addOutreachCamp' : ActorMethod<
-    [string, string, string, Time, Time, [] | [Principal], string, string],
+    [
+      string,
+      string,
+      string,
+      Time,
+      Time,
+      [] | [Principal],
+      string,
+      string,
+      Coordinates,
+    ],
     undefined
   >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignUserRole' : ActorMethod<[Principal, string], undefined>,
+  'canEditPost' : ActorMethod<[bigint], boolean>,
   'checkAndAssignAdmin' : ActorMethod<[], boolean>,
   'checkContent' : ActorMethod<[string], ContentFiltered>,
   'createCommunityPost' : ActorMethod<[string, boolean], undefined>,
   'createTherapySessionRequest' : ActorMethod<[string, string], undefined>,
   'deletePost' : ActorMethod<[bigint], undefined>,
+  'editCommunityPost' : ActorMethod<[bigint, string], undefined>,
   'getActiveUsers' : ActorMethod<[], Array<[Principal, Time]>>,
   'getAdminConversations' : ActorMethod<[], Array<Conversation>>,
   'getAllAreaMonitoring' : ActorMethod<[], Array<AreaMonitoring>>,
   'getAllCommunityPosts' : ActorMethod<[], Array<CommunityPost>>,
+  'getAllCoordinates' : ActorMethod<
+    [],
+    {
+      'areas' : Array<Coordinates>,
+      'camps' : Array<Coordinates>,
+      'institutions' : Array<Coordinates>,
+      'reportedAreas' : Array<Coordinates>,
+    }
+  >,
   'getAllInstitutions' : ActorMethod<[], Array<Institution>>,
   'getAllMessages' : ActorMethod<[], Array<Message>>,
   'getAllOutreachCamps' : ActorMethod<[], Array<OutreachCamp>>,
@@ -188,6 +223,7 @@ export interface _SERVICE {
   'getMessagesByUser' : ActorMethod<[Principal], Array<Message>>,
   'getOutreachCampById' : ActorMethod<[bigint], [] | [OutreachCamp]>,
   'getReportedAreas' : ActorMethod<[], Array<ReportedArea>>,
+  'getUniqueLoginsCount' : ActorMethod<[], bigint>,
   'getUserConversations' : ActorMethod<[Principal], Array<bigint>>,
   'getUserLanguagePreference' : ActorMethod<[], [] | [Language]>,
   'getUserMoodEntries' : ActorMethod<[Principal], Array<MoodEntry>>,
@@ -196,8 +232,9 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'markMessageAsRead' : ActorMethod<[bigint], undefined>,
   'moderatePost' : ActorMethod<[bigint, boolean], undefined>,
+  'recordSuccessfulLogin' : ActorMethod<[], undefined>,
   'reportArea' : ActorMethod<
-    [string, string, string, Array<string>, boolean],
+    [string, string, string, Array<string>, boolean, Coordinates],
     undefined
   >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
@@ -207,11 +244,21 @@ export interface _SERVICE {
   'submitStressQuiz' : ActorMethod<[bigint, Array<bigint>], undefined>,
   'updateAreaCampaigns' : ActorMethod<[string, Array<string>], undefined>,
   'updateAreaMonitoring' : ActorMethod<
-    [string, string, bigint, string, Array<string>],
+    [string, string, bigint, string, Array<string>, Coordinates],
     undefined
   >,
   'updateInstitution' : ActorMethod<
-    [bigint, string, string, string, string, string, bigint, Array<string>],
+    [
+      bigint,
+      string,
+      string,
+      string,
+      string,
+      string,
+      bigint,
+      Array<string>,
+      Coordinates,
+    ],
     undefined
   >,
   'updateOutreachCamp' : ActorMethod<
@@ -225,6 +272,7 @@ export interface _SERVICE {
       [] | [Principal],
       string,
       string,
+      Coordinates,
     ],
     undefined
   >,

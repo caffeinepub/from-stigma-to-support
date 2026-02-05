@@ -19,6 +19,10 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const Coordinates = IDL.Record({
+  'latitude' : IDL.Float64,
+  'longitude' : IDL.Float64,
+});
 export const Time = IDL.Int;
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
@@ -49,6 +53,7 @@ export const AreaMonitoring = IDL.Record({
   'timestamp' : Time,
   'regionName' : IDL.Text,
   'connectivityStatus' : IDL.Text,
+  'coordinates' : Coordinates,
 });
 export const CommunityPost = IDL.Record({
   'id' : IDL.Nat,
@@ -67,6 +72,7 @@ export const Institution = IDL.Record({
   'relatedCampaigns' : IDL.Vec(IDL.Text),
   'name' : IDL.Text,
   'awarenessRating' : IDL.Nat,
+  'coordinates' : Coordinates,
 });
 export const OutreachCamp = IDL.Record({
   'id' : IDL.Nat,
@@ -76,6 +82,7 @@ export const OutreachCamp = IDL.Record({
   'name' : IDL.Text,
   'description' : IDL.Text,
   'location' : IDL.Text,
+  'coordinates' : Coordinates,
   'startDate' : Time,
   'eventType' : IDL.Text,
 });
@@ -93,6 +100,7 @@ export const ReportedArea = IDL.Record({
   'regionName' : IDL.Text,
   'reporter' : IDL.Principal,
   'connectivityStatus' : IDL.Text,
+  'coordinates' : Coordinates,
 });
 export const Language = IDL.Variant({
   'tamil' : IDL.Null,
@@ -155,7 +163,7 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAreaMonitoring' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
+      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), Coordinates],
       [],
       [],
     ),
@@ -168,6 +176,7 @@ export const idlService = IDL.Service({
         IDL.Text,
         IDL.Nat,
         IDL.Vec(IDL.Text),
+        Coordinates,
       ],
       [],
       [],
@@ -183,17 +192,20 @@ export const idlService = IDL.Service({
         IDL.Opt(IDL.Principal),
         IDL.Text,
         IDL.Text,
+        Coordinates,
       ],
       [],
       [],
     ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'assignUserRole' : IDL.Func([IDL.Principal, IDL.Text], [], []),
+  'canEditPost' : IDL.Func([IDL.Nat], [IDL.Bool], ['query']),
   'checkAndAssignAdmin' : IDL.Func([], [IDL.Bool], []),
   'checkContent' : IDL.Func([IDL.Text], [ContentFiltered], ['query']),
   'createCommunityPost' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'createTherapySessionRequest' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
+  'editCommunityPost' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'getActiveUsers' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, Time))],
@@ -202,6 +214,18 @@ export const idlService = IDL.Service({
   'getAdminConversations' : IDL.Func([], [IDL.Vec(Conversation)], ['query']),
   'getAllAreaMonitoring' : IDL.Func([], [IDL.Vec(AreaMonitoring)], ['query']),
   'getAllCommunityPosts' : IDL.Func([], [IDL.Vec(CommunityPost)], ['query']),
+  'getAllCoordinates' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'areas' : IDL.Vec(Coordinates),
+          'camps' : IDL.Vec(Coordinates),
+          'institutions' : IDL.Vec(Coordinates),
+          'reportedAreas' : IDL.Vec(Coordinates),
+        }),
+      ],
+      ['query'],
+    ),
   'getAllInstitutions' : IDL.Func([], [IDL.Vec(Institution)], ['query']),
   'getAllMessages' : IDL.Func([], [IDL.Vec(Message)], ['query']),
   'getAllOutreachCamps' : IDL.Func([], [IDL.Vec(OutreachCamp)], ['query']),
@@ -248,6 +272,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getReportedAreas' : IDL.Func([], [IDL.Vec(ReportedArea)], ['query']),
+  'getUniqueLoginsCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserConversations' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(IDL.Nat)],
@@ -272,8 +297,9 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'markMessageAsRead' : IDL.Func([IDL.Nat], [], []),
   'moderatePost' : IDL.Func([IDL.Nat, IDL.Bool], [], []),
+  'recordSuccessfulLogin' : IDL.Func([], [], []),
   'reportArea' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(IDL.Text), IDL.Bool],
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(IDL.Text), IDL.Bool, Coordinates],
       [],
       [],
     ),
@@ -284,7 +310,7 @@ export const idlService = IDL.Service({
   'submitStressQuiz' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat)], [], []),
   'updateAreaCampaigns' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
   'updateAreaMonitoring' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
+      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), Coordinates],
       [],
       [],
     ),
@@ -298,6 +324,7 @@ export const idlService = IDL.Service({
         IDL.Text,
         IDL.Nat,
         IDL.Vec(IDL.Text),
+        Coordinates,
       ],
       [],
       [],
@@ -313,6 +340,7 @@ export const idlService = IDL.Service({
         IDL.Opt(IDL.Principal),
         IDL.Text,
         IDL.Text,
+        Coordinates,
       ],
       [],
       [],
@@ -333,6 +361,10 @@ export const idlFactory = ({ IDL }) => {
   const _CaffeineStorageRefillResult = IDL.Record({
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const Coordinates = IDL.Record({
+    'latitude' : IDL.Float64,
+    'longitude' : IDL.Float64,
   });
   const Time = IDL.Int;
   const UserRole = IDL.Variant({
@@ -364,6 +396,7 @@ export const idlFactory = ({ IDL }) => {
     'timestamp' : Time,
     'regionName' : IDL.Text,
     'connectivityStatus' : IDL.Text,
+    'coordinates' : Coordinates,
   });
   const CommunityPost = IDL.Record({
     'id' : IDL.Nat,
@@ -382,6 +415,7 @@ export const idlFactory = ({ IDL }) => {
     'relatedCampaigns' : IDL.Vec(IDL.Text),
     'name' : IDL.Text,
     'awarenessRating' : IDL.Nat,
+    'coordinates' : Coordinates,
   });
   const OutreachCamp = IDL.Record({
     'id' : IDL.Nat,
@@ -391,6 +425,7 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'description' : IDL.Text,
     'location' : IDL.Text,
+    'coordinates' : Coordinates,
     'startDate' : Time,
     'eventType' : IDL.Text,
   });
@@ -408,6 +443,7 @@ export const idlFactory = ({ IDL }) => {
     'regionName' : IDL.Text,
     'reporter' : IDL.Principal,
     'connectivityStatus' : IDL.Text,
+    'coordinates' : Coordinates,
   });
   const Language = IDL.Variant({
     'tamil' : IDL.Null,
@@ -470,7 +506,7 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAreaMonitoring' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
+        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), Coordinates],
         [],
         [],
       ),
@@ -483,6 +519,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Text,
           IDL.Nat,
           IDL.Vec(IDL.Text),
+          Coordinates,
         ],
         [],
         [],
@@ -498,17 +535,20 @@ export const idlFactory = ({ IDL }) => {
           IDL.Opt(IDL.Principal),
           IDL.Text,
           IDL.Text,
+          Coordinates,
         ],
         [],
         [],
       ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignUserRole' : IDL.Func([IDL.Principal, IDL.Text], [], []),
+    'canEditPost' : IDL.Func([IDL.Nat], [IDL.Bool], ['query']),
     'checkAndAssignAdmin' : IDL.Func([], [IDL.Bool], []),
     'checkContent' : IDL.Func([IDL.Text], [ContentFiltered], ['query']),
     'createCommunityPost' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'createTherapySessionRequest' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
+    'editCommunityPost' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'getActiveUsers' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, Time))],
@@ -517,6 +557,18 @@ export const idlFactory = ({ IDL }) => {
     'getAdminConversations' : IDL.Func([], [IDL.Vec(Conversation)], ['query']),
     'getAllAreaMonitoring' : IDL.Func([], [IDL.Vec(AreaMonitoring)], ['query']),
     'getAllCommunityPosts' : IDL.Func([], [IDL.Vec(CommunityPost)], ['query']),
+    'getAllCoordinates' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'areas' : IDL.Vec(Coordinates),
+            'camps' : IDL.Vec(Coordinates),
+            'institutions' : IDL.Vec(Coordinates),
+            'reportedAreas' : IDL.Vec(Coordinates),
+          }),
+        ],
+        ['query'],
+      ),
     'getAllInstitutions' : IDL.Func([], [IDL.Vec(Institution)], ['query']),
     'getAllMessages' : IDL.Func([], [IDL.Vec(Message)], ['query']),
     'getAllOutreachCamps' : IDL.Func([], [IDL.Vec(OutreachCamp)], ['query']),
@@ -571,6 +623,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getReportedAreas' : IDL.Func([], [IDL.Vec(ReportedArea)], ['query']),
+    'getUniqueLoginsCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserConversations' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(IDL.Nat)],
@@ -595,8 +648,16 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'markMessageAsRead' : IDL.Func([IDL.Nat], [], []),
     'moderatePost' : IDL.Func([IDL.Nat, IDL.Bool], [], []),
+    'recordSuccessfulLogin' : IDL.Func([], [], []),
     'reportArea' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(IDL.Text), IDL.Bool],
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Vec(IDL.Text),
+          IDL.Bool,
+          Coordinates,
+        ],
         [],
         [],
       ),
@@ -607,7 +668,7 @@ export const idlFactory = ({ IDL }) => {
     'submitStressQuiz' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat)], [], []),
     'updateAreaCampaigns' : IDL.Func([IDL.Text, IDL.Vec(IDL.Text)], [], []),
     'updateAreaMonitoring' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
+        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), Coordinates],
         [],
         [],
       ),
@@ -621,6 +682,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Text,
           IDL.Nat,
           IDL.Vec(IDL.Text),
+          Coordinates,
         ],
         [],
         [],
@@ -636,6 +698,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Opt(IDL.Principal),
           IDL.Text,
           IDL.Text,
+          Coordinates,
         ],
         [],
         [],

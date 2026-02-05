@@ -1,0 +1,23 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Remove Share option from header only",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Remove the ShareWebsiteDialog trigger/button from the app header while leaving all other header layout and behavior unchanged.",
+      "acceptanceCriteria": [
+        "The header no longer renders the ShareWebsiteDialog trigger/button (i.e., no share icon/button/menu entry is visible in the header).",
+        "All other header elements remain the same (logo/home button, navigation items, login/logout button, and mobile menu button still function as before).",
+        "No backend changes are introduced."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Remove the ShareWebsiteDialog import and the <ShareWebsiteDialog /> render from the header actions area, keeping the surrounding layout/spacing and all other header logic (auth button, nav items, mobile menu toggle) unchanged."
+        }
+      ]
+    }
+  ]
+}

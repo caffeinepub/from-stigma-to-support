@@ -1,0 +1,37 @@
+{
+  "kind": "build_request",
+  "title": "Remove the Share option button from the header (no other changes)",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Remove the Share option UI control rendered in the app header (the ShareWebsiteDialog trigger button) and keep the rest of the header layout/behavior unchanged.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Remove only the share option,change nothing else,everything same except the share optipn"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The header no longer renders the ShareWebsiteDialog trigger/button (i.e., no share icon/button/menu entry is visible in the header).",
+        "All other header elements remain the same (logo/home button, navigation items, login/logout button, and mobile menu button still function as before).",
+        "No backend changes are introduced."
+      ]
+    }
+  ],
+  "constraints": [
+    "Apply changes only to the selected header element context (share option in the header) and do not modify unrelated UI or flows."
+  ],
+  "nonGoals": [
+    "Do not change the Footer share option.",
+    "Do not modify ShareWebsiteDialog behavior or content beyond removing its header trigger.",
+    "Do not change authentication, navigation, or styling/theme elsewhere."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

@@ -1,33 +1,24 @@
 import { useState } from 'react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetAllCommunityPosts, useCreateCommunityPost, useCheckContent, useDeletePost, useIsCallerAdmin } from '../hooks/useQueries';
+import { useGetAllCommunityPosts, useCreateCommunityPost, useCheckContent, useIsCallerAdmin } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { AlertCircle, Send, Users, Clock, Trash2 } from 'lucide-react';
+import { AlertCircle, Send, Users, MessageCircle } from 'lucide-react';
+import CommunityPostCard from '../components/community/CommunityPostCard';
 
-export default function CommunityPage() {
+interface CommunityPageProps {
+  onNavigate?: (page: 'messages') => void;
+}
+
+export default function CommunityPage({ onNavigate }: CommunityPageProps) {
   const { identity } = useInternetIdentity();
   const { data: posts = [], isLoading } = useGetAllCommunityPosts();
   const { data: isAdmin = false } = useIsCallerAdmin();
   const createPost = useCreateCommunityPost();
   const checkContent = useCheckContent();
-  const deletePost = useDeletePost();
 
   const [content, setContent] = useState('');
   const [anonymous, setAnonymous] = useState(true);
@@ -66,19 +57,12 @@ export default function CommunityPage() {
     }
   };
 
-  const handleDeletePost = async (postId: bigint) => {
-    try {
-      await deletePost.mutateAsync(postId);
-      toast.success('Post deleted successfully');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to delete post';
-      if (errorMessage.includes('Unauthorized')) {
-        toast.error('You do not have permission to delete this post');
-      } else {
-        toast.error('Failed to delete post. Please try again.');
-      }
-      console.error(error);
-    }
+  const canEditPost = (post: typeof posts[0]) => {
+    if (!isAuthenticated) return false;
+    // Admin can edit any post
+    if (isAdmin) return true;
+    // User can edit their own post
+    return post.author.toString() === currentUserPrincipal;
   };
 
   const canDeletePost = (post: typeof posts[0]) => {
@@ -87,11 +71,6 @@ export default function CommunityPage() {
     if (isAdmin) return true;
     // User can delete their own post
     return post.author.toString() === currentUserPrincipal;
-  };
-
-  const formatTimestamp = (timestamp: bigint) => {
-    const date = new Date(Number(timestamp) / 1000000);
-    return date.toLocaleString();
   };
 
   const sortedPosts = [...posts].sort((a, b) => Number(b.timestamp - a.timestamp));
@@ -109,6 +88,39 @@ export default function CommunityPage() {
           Share your concerns and support others in a safe, anonymous space
         </p>
       </div>
+
+      {/* Direct Messages CTA */}
+      {isAuthenticated && onNavigate && (
+        <Card className="mb-8 border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-8 h-8 text-purple-600" />
+                <div>
+                  <h3 className="font-semibold text-lg">Direct Messages</h3>
+                  <p className="text-sm text-muted-foreground">Connect privately with other community members</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => onNavigate('messages')}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Open Messages
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAuthenticated && (
+        <Alert className="mb-8 bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800">
+          <MessageCircle className="h-4 w-4 text-purple-600" />
+          <AlertDescription>
+            <strong>Login to unlock Direct Messages:</strong> Connect privately with other community members for one-on-one support.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Disclaimer */}
       <Alert className="mb-8 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
@@ -200,59 +212,12 @@ export default function CommunityPage() {
           </Card>
         ) : (
           sortedPosts.map((post) => (
-            <Card key={post.id.toString()} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Anonymous</Badge>
-                    {post.moderationFlag && (
-                      <Badge variant="destructive">Flagged</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    {formatTimestamp(post.timestamp)}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-foreground whitespace-pre-wrap mb-4">{post.content}</p>
-                
-                {canDeletePost(post) && (
-                  <div className="flex justify-end">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          disabled={deletePost.isPending}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Post</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this post? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeletePost(post.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <CommunityPostCard
+              key={post.id.toString()}
+              post={post}
+              canEdit={canEditPost(post)}
+              canDelete={canDeletePost(post)}
+            />
           ))
         )}
       </div>

@@ -15,6 +15,7 @@ import {
   useUpdateOutreachCamp,
   useGetDashboardAnalytics,
   useAssignUserRole,
+  useGetUniqueLoginsCount,
 } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,11 +28,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, List, Plus, Edit, Wifi, WifiOff, Heart, AlertCircle, Shield, Building2, TrendingUp, Calendar, Users, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MapPin, List, Plus, Edit, Wifi, WifiOff, Heart, AlertCircle, Shield, Building2, TrendingUp, Calendar, Users, Activity, AlertTriangle, CheckCircle, Map } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ReportedArea, Institution, AreaMonitoring, OutreachCamp } from '../backend';
 import { Principal } from '@dfinity/principal';
+import OutreachInteractiveMap, { MapMarker } from '../components/outreach/OutreachInteractiveMap';
 
 // Type declaration for Network Information API
 interface NetworkInformation extends EventTarget {
@@ -53,6 +55,7 @@ export default function OutreachDashboardPage() {
   const { data: areaMonitoring = [], isLoading: monitoringLoading } = useGetAllAreaMonitoring();
   const { data: camps = [], isLoading: campsLoading } = useGetAllOutreachCamps();
   const { data: analytics, isLoading: analyticsLoading } = useGetDashboardAnalytics();
+  const { data: uniqueLoginsCount = BigInt(0), isLoading: loginsLoading } = useGetUniqueLoginsCount();
 
   const reportAreaMutation = useReportArea();
   const updateCampaignsMutation = useUpdateAreaCampaigns();
@@ -97,6 +100,8 @@ export default function OutreachDashboardPage() {
   const [instInfrastructure, setInstInfrastructure] = useState('');
   const [instAwareness, setInstAwareness] = useState('3');
   const [instCampaigns, setInstCampaigns] = useState('');
+  const [instLatitude, setInstLatitude] = useState('0');
+  const [instLongitude, setInstLongitude] = useState('0');
 
   // Area monitoring form states
   const [monRegion, setMonRegion] = useState('');
@@ -104,6 +109,8 @@ export default function OutreachDashboardPage() {
   const [monAccessLevel, setMonAccessLevel] = useState('3');
   const [monDescription, setMonDescription] = useState('');
   const [monCampaigns, setMonCampaigns] = useState('');
+  const [monLatitude, setMonLatitude] = useState('0');
+  const [monLongitude, setMonLongitude] = useState('0');
 
   // Camp form states
   const [campName, setCampName] = useState('');
@@ -114,6 +121,8 @@ export default function OutreachDashboardPage() {
   const [campClinician, setCampClinician] = useState('');
   const [campStatus, setCampStatus] = useState('Upcoming');
   const [campDescription, setCampDescription] = useState('');
+  const [campLatitude, setCampLatitude] = useState('0');
+  const [campLongitude, setCampLongitude] = useState('0');
 
   // Role assignment form states
   const [rolePrincipal, setRolePrincipal] = useState('');
@@ -161,6 +170,7 @@ export default function OutreachDashboardPage() {
         description,
         linkedCampaigns: campaigns,
         hasMentalHealthSupport,
+        coordinates: { latitude: 0, longitude: 0 },
       });
       toast.success('Area reported successfully');
       setReportDialogOpen(false);
@@ -205,6 +215,10 @@ export default function OutreachDashboardPage() {
         infrastructureStatus: instInfrastructure,
         awarenessRating: BigInt(instAwareness),
         relatedCampaigns: campaigns,
+        coordinates: {
+          latitude: parseFloat(instLatitude) || 0,
+          longitude: parseFloat(instLongitude) || 0,
+        },
       });
       toast.success('Institution added successfully');
       setInstitutionDialogOpen(false);
@@ -215,6 +229,8 @@ export default function OutreachDashboardPage() {
       setInstInfrastructure('');
       setInstAwareness('3');
       setInstCampaigns('');
+      setInstLatitude('0');
+      setInstLongitude('0');
     } catch (error: any) {
       toast.error(error.message || 'Failed to add institution');
     }
@@ -235,6 +251,10 @@ export default function OutreachDashboardPage() {
         infrastructureStatus: instInfrastructure,
         awarenessRating: BigInt(instAwareness),
         relatedCampaigns: campaigns,
+        coordinates: {
+          latitude: parseFloat(instLatitude) || 0,
+          longitude: parseFloat(instLongitude) || 0,
+        },
       });
       toast.success('Institution updated successfully');
       setEditInstitutionDialogOpen(false);
@@ -254,6 +274,10 @@ export default function OutreachDashboardPage() {
         accessLevel: BigInt(monAccessLevel),
         description: monDescription,
         linkedCampaigns: campaigns,
+        coordinates: {
+          latitude: parseFloat(monLatitude) || 0,
+          longitude: parseFloat(monLongitude) || 0,
+        },
       });
       toast.success('Area monitoring added successfully');
       setMonitoringDialogOpen(false);
@@ -262,6 +286,8 @@ export default function OutreachDashboardPage() {
       setMonAccessLevel('3');
       setMonDescription('');
       setMonCampaigns('');
+      setMonLatitude('0');
+      setMonLongitude('0');
     } catch (error: any) {
       toast.error(error.message || 'Failed to add area monitoring');
     }
@@ -279,6 +305,10 @@ export default function OutreachDashboardPage() {
         accessLevel: BigInt(monAccessLevel),
         description: monDescription,
         linkedCampaigns: campaigns,
+        coordinates: {
+          latitude: parseFloat(monLatitude) || 0,
+          longitude: parseFloat(monLongitude) || 0,
+        },
       });
       toast.success('Area monitoring updated successfully');
       setEditMonitoringDialogOpen(false);
@@ -304,6 +334,10 @@ export default function OutreachDashboardPage() {
         assignedClinician: clinician,
         status: campStatus,
         description: campDescription,
+        coordinates: {
+          latitude: parseFloat(campLatitude) || 0,
+          longitude: parseFloat(campLongitude) || 0,
+        },
       });
       toast.success('Outreach camp added successfully');
       setCampDialogOpen(false);
@@ -315,6 +349,8 @@ export default function OutreachDashboardPage() {
       setCampClinician('');
       setCampStatus('Upcoming');
       setCampDescription('');
+      setCampLatitude('0');
+      setCampLongitude('0');
     } catch (error: any) {
       toast.error(error.message || 'Failed to add camp');
     }
@@ -339,6 +375,10 @@ export default function OutreachDashboardPage() {
         assignedClinician: clinician,
         status: campStatus,
         description: campDescription,
+        coordinates: {
+          latitude: parseFloat(campLatitude) || 0,
+          longitude: parseFloat(campLongitude) || 0,
+        },
       });
       toast.success('Outreach camp updated successfully');
       setEditCampDialogOpen(false);
@@ -380,6 +420,8 @@ export default function OutreachDashboardPage() {
     setInstInfrastructure(inst.infrastructureStatus);
     setInstAwareness(inst.awarenessRating.toString());
     setInstCampaigns(inst.relatedCampaigns.join(', '));
+    setInstLatitude(inst.coordinates.latitude.toString());
+    setInstLongitude(inst.coordinates.longitude.toString());
     setEditInstitutionDialogOpen(true);
   };
 
@@ -390,6 +432,8 @@ export default function OutreachDashboardPage() {
     setMonAccessLevel(mon.accessLevel.toString());
     setMonDescription(mon.description);
     setMonCampaigns(mon.linkedCampaigns.join(', '));
+    setMonLatitude(mon.coordinates.latitude.toString());
+    setMonLongitude(mon.coordinates.longitude.toString());
     setEditMonitoringDialogOpen(true);
   };
 
@@ -403,6 +447,8 @@ export default function OutreachDashboardPage() {
     setCampClinician(camp.assignedClinician ? camp.assignedClinician.toString() : '');
     setCampStatus(camp.status);
     setCampDescription(camp.description);
+    setCampLatitude(camp.coordinates.latitude.toString());
+    setCampLongitude(camp.coordinates.longitude.toString());
     setEditCampDialogOpen(true);
   };
 
@@ -415,6 +461,50 @@ export default function OutreachDashboardPage() {
     if (lowerType.includes('community')) return '/assets/generated/community-center-icon.dim_64x64.png';
     return '/assets/generated/hospital-icon.dim_64x64.png';
   };
+
+  // Prepare map markers
+  const mapMarkers: MapMarker[] = [
+    ...institutions.map(inst => ({
+      id: `inst-${inst.id}`,
+      name: inst.name,
+      coordinates: inst.coordinates,
+      type: 'institution' as const,
+      metadata: {
+        status: inst.infrastructureStatus,
+        description: `${inst.institutionType} - ${inst.region}`,
+      },
+    })),
+    ...areaMonitoring.map(area => ({
+      id: `area-${area.regionName}`,
+      name: area.regionName,
+      coordinates: area.coordinates,
+      type: 'area' as const,
+      metadata: {
+        status: area.connectivityStatus,
+        description: area.description,
+      },
+    })),
+    ...camps.map(camp => ({
+      id: `camp-${camp.id}`,
+      name: camp.name,
+      coordinates: camp.coordinates,
+      type: 'camp' as const,
+      metadata: {
+        status: camp.status,
+        description: camp.description,
+      },
+    })),
+    ...areas.map(area => ({
+      id: `reported-${area.regionName}`,
+      name: area.regionName,
+      coordinates: area.coordinates,
+      type: 'reported' as const,
+      metadata: {
+        status: area.connectivityStatus,
+        description: area.description,
+      },
+    })),
+  ];
 
   if (!isAuthenticated) {
     return (
@@ -560,6 +650,23 @@ export default function OutreachDashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Logged-in Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {loginsLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <div className="text-2xl font-bold">{Number(uniqueLoginsCount)}</div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">Unique authenticated users</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Distressed Regions</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-red-500" />
               </CardHeader>
@@ -645,10 +752,17 @@ export default function OutreachDashboardPage() {
                     <Badge variant="outline">{camps.length} Camps</Badge>
                     <span className="text-muted-foreground">scheduled</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{Number(uniqueLoginsCount)} Users</Badge>
+                    <span className="text-muted-foreground">logged in</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Interactive Map Overview */}
+          <OutreachInteractiveMap markers={mapMarkers} />
         </TabsContent>
 
         {/* Institutions Tab */}
@@ -752,6 +866,38 @@ export default function OutreachDashboardPage() {
                       placeholder="e.g., Campus Wellness 2025"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="instLatitude">Latitude</Label>
+                      <Input
+                        id="instLatitude"
+                        type="number"
+                        step="any"
+                        value={instLatitude}
+                        onChange={(e) => setInstLatitude(e.target.value)}
+                        placeholder="e.g., 28.6139"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Range: -90 to 90</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="instLongitude">Longitude</Label>
+                      <Input
+                        id="instLongitude"
+                        type="number"
+                        step="any"
+                        value={instLongitude}
+                        onChange={(e) => setInstLongitude(e.target.value)}
+                        placeholder="e.g., 77.2090"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Range: -180 to 180</p>
+                    </div>
+                  </div>
+                  <Alert>
+                    <MapPin className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Find coordinates from Google Maps or Apple Maps by right-clicking a location
+                    </AlertDescription>
+                  </Alert>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setInstitutionDialogOpen(false)}>
                       Cancel
@@ -809,6 +955,12 @@ export default function OutreachDashboardPage() {
                     <span className="text-sm text-muted-foreground">Infrastructure:</span>
                     <Badge variant="outline">{inst.infrastructureStatus}</Badge>
                   </div>
+                  {(inst.coordinates.latitude !== 0 || inst.coordinates.longitude !== 0) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span>{inst.coordinates.latitude.toFixed(4)}, {inst.coordinates.longitude.toFixed(4)}</span>
+                    </div>
+                  )}
                   {inst.relatedCampaigns.length > 0 && (
                     <div className="pt-2">
                       <p className="text-xs font-semibold mb-1">Campaigns:</p>
@@ -843,196 +995,260 @@ export default function OutreachDashboardPage() {
               <h2 className="text-2xl font-bold">Rural & Low-Access Area Monitoring</h2>
               <p className="text-muted-foreground">Track digitally disconnected and underserved regions</p>
             </div>
-            <Dialog open={monitoringDialogOpen} onOpenChange={setMonitoringDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Area
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Add Area Monitoring</DialogTitle>
-                  <DialogDescription>Register a new area for monitoring and support</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddAreaMonitoring} className="space-y-4">
-                  <div>
-                    <Label htmlFor="monRegion">Region Name *</Label>
-                    <Input
-                      id="monRegion"
-                      value={monRegion}
-                      onChange={(e) => setMonRegion(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="monConnectivity">Connectivity Status *</Label>
-                    <Input
-                      id="monConnectivity"
-                      value={monConnectivity}
-                      onChange={(e) => setMonConnectivity(e.target.value)}
-                      placeholder="e.g., Poor, No Internet"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="monAccessLevel">Access Level (1-5) *</Label>
-                    <Select value={monAccessLevel} onValueChange={setMonAccessLevel}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Very Low</SelectItem>
-                        <SelectItem value="2">2 - Low</SelectItem>
-                        <SelectItem value="3">3 - Medium</SelectItem>
-                        <SelectItem value="4">4 - High</SelectItem>
-                        <SelectItem value="5">5 - Very High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="monDescription">Description *</Label>
-                    <Textarea
-                      id="monDescription"
-                      value={monDescription}
-                      onChange={(e) => setMonDescription(e.target.value)}
-                      rows={4}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="monCampaigns">Linked Campaigns (comma-separated)</Label>
-                    <Input
-                      id="monCampaigns"
-                      value={monCampaigns}
-                      onChange={(e) => setMonCampaigns(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setMonitoringDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={addAreaMonitoringMutation.isPending}>
-                      {addAreaMonitoringMutation.isPending ? 'Adding...' : 'Add Area'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === 'map' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('map')}
+              >
+                <Map className="w-4 h-4 mr-2" />
+                Map
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4 mr-2" />
+                List
+              </Button>
+              <Dialog open={monitoringDialogOpen} onOpenChange={setMonitoringDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Area
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add Area Monitoring</DialogTitle>
+                    <DialogDescription>Register a new area for monitoring and support</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddAreaMonitoring} className="space-y-4">
+                    <div>
+                      <Label htmlFor="monRegion">Region Name *</Label>
+                      <Input
+                        id="monRegion"
+                        value={monRegion}
+                        onChange={(e) => setMonRegion(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="monConnectivity">Connectivity Status *</Label>
+                      <Input
+                        id="monConnectivity"
+                        value={monConnectivity}
+                        onChange={(e) => setMonConnectivity(e.target.value)}
+                        placeholder="e.g., Poor, No Internet"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="monAccessLevel">Access Level (1-5) *</Label>
+                      <Select value={monAccessLevel} onValueChange={setMonAccessLevel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 - Very Low</SelectItem>
+                          <SelectItem value="2">2 - Low</SelectItem>
+                          <SelectItem value="3">3 - Medium</SelectItem>
+                          <SelectItem value="4">4 - High</SelectItem>
+                          <SelectItem value="5">5 - Very High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="monDescription">Description *</Label>
+                      <Textarea
+                        id="monDescription"
+                        value={monDescription}
+                        onChange={(e) => setMonDescription(e.target.value)}
+                        rows={4}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="monCampaigns">Linked Campaigns (comma-separated)</Label>
+                      <Input
+                        id="monCampaigns"
+                        value={monCampaigns}
+                        onChange={(e) => setMonCampaigns(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="monLatitude">Latitude</Label>
+                        <Input
+                          id="monLatitude"
+                          type="number"
+                          step="any"
+                          value={monLatitude}
+                          onChange={(e) => setMonLatitude(e.target.value)}
+                          placeholder="e.g., 28.6139"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Range: -90 to 90</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="monLongitude">Longitude</Label>
+                        <Input
+                          id="monLongitude"
+                          type="number"
+                          step="any"
+                          value={monLongitude}
+                          onChange={(e) => setMonLongitude(e.target.value)}
+                          placeholder="e.g., 77.2090"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Range: -180 to 180</p>
+                      </div>
+                    </div>
+                    <Alert>
+                      <MapPin className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        Find coordinates from Google Maps or Apple Maps by right-clicking a location
+                      </AlertDescription>
+                    </Alert>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setMonitoringDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={addAreaMonitoringMutation.isPending}>
+                        {addAreaMonitoringMutation.isPending ? 'Adding...' : 'Add Area'}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
-          {/* Heatmap Visualization */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Level Heatmap</CardTitle>
-              <CardDescription>Visual representation of area access levels</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative bg-gradient-to-br from-red-100 via-yellow-100 to-green-100 dark:from-gray-800 dark:to-gray-700 rounded-lg p-8 min-h-[400px]">
-                <img
-                  src="/assets/generated/heatmap-overlay-transparent.dim_200x200.png"
-                  alt="Heatmap overlay"
-                  className="absolute inset-0 w-full h-full object-cover opacity-30"
-                />
-                <div className="relative grid grid-cols-6 grid-rows-4 gap-4 h-full">
-                  {areaMonitoring.slice(0, 24).map((area, index) => {
-                    const accessLevel = Number(area.accessLevel);
-                    const color = accessLevel <= 2 ? 'bg-red-500' : accessLevel === 3 ? 'bg-yellow-500' : 'bg-green-500';
-                    return (
-                      <div
-                        key={area.regionName}
-                        className={`${color} rounded-full w-8 h-8 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:scale-110 transition-transform`}
-                        title={`${area.regionName}: Level ${accessLevel}`}
-                      >
-                        {accessLevel}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <span>Low Access (1-2)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                  <span>Medium (3)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span>High Access (4-5)</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {areaMonitoring.map((area) => (
-              <Card key={area.regionName} className="hover:shadow-lg transition-shadow">
+          {viewMode === 'map' ? (
+            <OutreachInteractiveMap 
+              markers={mapMarkers.filter(m => m.type === 'area' || m.type === 'reported')} 
+            />
+          ) : (
+            <>
+              {/* Heatmap Visualization */}
+              <Card>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-blue-600" />
-                        {area.regionName}
-                      </CardTitle>
-                      <CardDescription>
-                        {new Date(Number(area.timestamp) / 1000000).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditMonitoringDialog(area)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <CardTitle>Access Level Heatmap</CardTitle>
+                  <CardDescription>Visual representation of area access levels</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    {Number(area.accessLevel) <= 2 ? (
-                      <>
-                        <WifiOff className="w-4 h-4 text-red-500" />
-                        <Badge variant="destructive">Access Level: {Number(area.accessLevel)}</Badge>
-                      </>
-                    ) : (
-                      <>
-                        <Wifi className="w-4 h-4 text-green-500" />
-                        <Badge variant="secondary">Access Level: {Number(area.accessLevel)}</Badge>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{area.connectivityStatus}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-3">{area.description}</p>
-                  {area.linkedCampaigns.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold">Campaigns:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {area.linkedCampaigns.map((campaign, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {campaign}
-                          </Badge>
-                        ))}
-                      </div>
+                <CardContent>
+                  <div className="relative bg-gradient-to-br from-red-100 via-yellow-100 to-green-100 dark:from-gray-800 dark:to-gray-700 rounded-lg p-8 min-h-[400px]">
+                    <img
+                      src="/assets/generated/heatmap-overlay-transparent.dim_200x200.png"
+                      alt="Heatmap overlay"
+                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                    />
+                    <div className="relative grid grid-cols-6 grid-rows-4 gap-4 h-full">
+                      {areaMonitoring.slice(0, 24).map((area, index) => {
+                        const accessLevel = Number(area.accessLevel);
+                        const color = accessLevel <= 2 ? 'bg-red-500' : accessLevel === 3 ? 'bg-yellow-500' : 'bg-green-500';
+                        return (
+                          <div
+                            key={area.regionName}
+                            className={`${color} rounded-full w-8 h-8 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:scale-110 transition-transform`}
+                            title={`${area.regionName}: Level ${accessLevel}`}
+                          >
+                            {accessLevel}
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                  <div className="flex items-center justify-center gap-6 mt-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <span>Low Access (1-2)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                      <span>Medium (3)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                      <span>High Access (4-5)</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
 
-            {areaMonitoring.length === 0 && (
-              <Card className="col-span-full">
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <MapPin className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No areas monitored yet</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {areaMonitoring.map((area) => (
+                  <Card key={area.regionName} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-blue-600" />
+                            {area.regionName}
+                          </CardTitle>
+                          <CardDescription>
+                            {new Date(Number(area.timestamp) / 1000000).toLocaleDateString()}
+                          </CardDescription>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditMonitoringDialog(area)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {Number(area.accessLevel) <= 2 ? (
+                          <>
+                            <WifiOff className="w-4 h-4 text-red-500" />
+                            <Badge variant="destructive">Access Level: {Number(area.accessLevel)}</Badge>
+                          </>
+                        ) : (
+                          <>
+                            <Wifi className="w-4 h-4 text-green-500" />
+                            <Badge variant="secondary">Access Level: {Number(area.accessLevel)}</Badge>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{area.connectivityStatus}</Badge>
+                      </div>
+                      {(area.coordinates.latitude !== 0 || area.coordinates.longitude !== 0) && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>{area.coordinates.latitude.toFixed(4)}, {area.coordinates.longitude.toFixed(4)}</span>
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground line-clamp-3">{area.description}</p>
+                      {area.linkedCampaigns.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold">Campaigns:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {area.linkedCampaigns.map((campaign, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {campaign}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {areaMonitoring.length === 0 && (
+                  <Card className="col-span-full">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <MapPin className="w-16 h-16 mb-4 opacity-50" />
+                      <p className="text-muted-foreground">No areas monitored yet</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Camps Tab */}
@@ -1147,6 +1363,38 @@ export default function OutreachDashboardPage() {
                       required
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="campLatitude">Latitude</Label>
+                      <Input
+                        id="campLatitude"
+                        type="number"
+                        step="any"
+                        value={campLatitude}
+                        onChange={(e) => setCampLatitude(e.target.value)}
+                        placeholder="e.g., 28.6139"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Range: -90 to 90</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="campLongitude">Longitude</Label>
+                      <Input
+                        id="campLongitude"
+                        type="number"
+                        step="any"
+                        value={campLongitude}
+                        onChange={(e) => setCampLongitude(e.target.value)}
+                        placeholder="e.g., 77.2090"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Range: -180 to 180</p>
+                    </div>
+                  </div>
+                  <Alert>
+                    <MapPin className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Find coordinates from Google Maps or Apple Maps by right-clicking a location
+                    </AlertDescription>
+                  </Alert>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setCampDialogOpen(false)}>
                       Cancel
@@ -1214,6 +1462,12 @@ export default function OutreachDashboardPage() {
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-muted-foreground" />
                       <span className="text-xs truncate">Clinician assigned</span>
+                    </div>
+                  )}
+                  {(camp.coordinates.latitude !== 0 || camp.coordinates.longitude !== 0) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span>{camp.coordinates.latitude.toFixed(4)}, {camp.coordinates.longitude.toFixed(4)}</span>
                     </div>
                   )}
                   <p className="text-sm text-muted-foreground line-clamp-2 pt-2">{camp.description}</p>
@@ -1502,6 +1756,28 @@ export default function OutreachDashboardPage() {
                 onChange={(e) => setInstCampaigns(e.target.value)}
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editInstLatitude">Latitude</Label>
+                <Input
+                  id="editInstLatitude"
+                  type="number"
+                  step="any"
+                  value={instLatitude}
+                  onChange={(e) => setInstLatitude(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editInstLongitude">Longitude</Label>
+                <Input
+                  id="editInstLongitude"
+                  type="number"
+                  step="any"
+                  value={instLongitude}
+                  onChange={(e) => setInstLongitude(e.target.value)}
+                />
+              </div>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditInstitutionDialogOpen(false)}>
                 Cancel
@@ -1566,6 +1842,28 @@ export default function OutreachDashboardPage() {
                 value={monCampaigns}
                 onChange={(e) => setMonCampaigns(e.target.value)}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editMonLatitude">Latitude</Label>
+                <Input
+                  id="editMonLatitude"
+                  type="number"
+                  step="any"
+                  value={monLatitude}
+                  onChange={(e) => setMonLatitude(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editMonLongitude">Longitude</Label>
+                <Input
+                  id="editMonLongitude"
+                  type="number"
+                  step="any"
+                  value={monLongitude}
+                  onChange={(e) => setMonLongitude(e.target.value)}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditMonitoringDialogOpen(false)}>
@@ -1676,6 +1974,28 @@ export default function OutreachDashboardPage() {
                 rows={4}
                 required
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editCampLatitude">Latitude</Label>
+                <Input
+                  id="editCampLatitude"
+                  type="number"
+                  step="any"
+                  value={campLatitude}
+                  onChange={(e) => setCampLatitude(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editCampLongitude">Longitude</Label>
+                <Input
+                  id="editCampLongitude"
+                  type="number"
+                  step="any"
+                  value={campLongitude}
+                  onChange={(e) => setCampLongitude(e.target.value)}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditCampDialogOpen(false)}>

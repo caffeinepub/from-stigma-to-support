@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Heart, Shield, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
-import ShareWebsiteDialog from './ShareWebsiteDialog';
 
 type Page = 'home' | 'community' | 'therapy' | 'mood' | 'quiz' | 'guidelines' | 'helpline' | 'outreach' | 'messages';
 
@@ -88,7 +87,6 @@ export default function Header({ currentPage, onNavigate, isAdmin }: HeaderProps
           </nav>
 
           <div className="flex items-center gap-2">
-            <ShareWebsiteDialog />
             <Button
               onClick={handleAuth}
               disabled={disabled}
@@ -134,4 +132,3 @@ export default function Header({ currentPage, onNavigate, isAdmin }: HeaderProps
     </header>
   );
 }
-

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useInternetIdentity } from './useInternetIdentity';
-import type { UserProfile, CommunityPost, MoodEntry, StressQuizResponse, CommunityGuidelines, TherapySessionRequest, ReportedArea, Institution, AreaMonitoring, OutreachCamp, Message } from '../backend';
+import type { UserProfile, CommunityPost, MoodEntry, StressQuizResponse, CommunityGuidelines, TherapySessionRequest, ReportedArea, Institution, AreaMonitoring, OutreachCamp, Message, Coordinates } from '../backend';
 import { Principal } from '@dfinity/principal';
 
 // User Profile
@@ -115,6 +115,33 @@ export function useCreateCommunityPost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
+    },
+  });
+}
+
+export function useEditCommunityPost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, newContent }: { postId: bigint; newContent: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.editCommunityPost(postId, newContent);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
+    },
+  });
+}
+
+export function useCanEditPost() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.canEditPost(postId);
     },
   });
 }
@@ -261,15 +288,17 @@ export function useReportArea() {
       description,
       linkedCampaigns,
       hasMentalHealthSupport,
+      coordinates,
     }: {
       regionName: string;
       connectivityStatus: string;
       description: string;
       linkedCampaigns: string[];
       hasMentalHealthSupport: boolean;
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.reportArea(regionName, connectivityStatus, description, linkedCampaigns, hasMentalHealthSupport);
+      return actor.reportArea(regionName, connectivityStatus, description, linkedCampaigns, hasMentalHealthSupport, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reportedAreas'] });
@@ -320,6 +349,7 @@ export function useAddInstitution() {
       infrastructureStatus,
       awarenessRating,
       relatedCampaigns,
+      coordinates,
     }: {
       name: string;
       institutionType: string;
@@ -328,9 +358,10 @@ export function useAddInstitution() {
       infrastructureStatus: string;
       awarenessRating: bigint;
       relatedCampaigns: string[];
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addInstitution(name, institutionType, region, contactInfo, infrastructureStatus, awarenessRating, relatedCampaigns);
+      return actor.addInstitution(name, institutionType, region, contactInfo, infrastructureStatus, awarenessRating, relatedCampaigns, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
@@ -353,6 +384,7 @@ export function useUpdateInstitution() {
       infrastructureStatus,
       awarenessRating,
       relatedCampaigns,
+      coordinates,
     }: {
       id: bigint;
       name: string;
@@ -362,9 +394,10 @@ export function useUpdateInstitution() {
       infrastructureStatus: string;
       awarenessRating: bigint;
       relatedCampaigns: string[];
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateInstitution(id, name, institutionType, region, contactInfo, infrastructureStatus, awarenessRating, relatedCampaigns);
+      return actor.updateInstitution(id, name, institutionType, region, contactInfo, infrastructureStatus, awarenessRating, relatedCampaigns, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
@@ -399,15 +432,17 @@ export function useAddAreaMonitoring() {
       accessLevel,
       description,
       linkedCampaigns,
+      coordinates,
     }: {
       regionName: string;
       connectivityStatus: string;
       accessLevel: bigint;
       description: string;
       linkedCampaigns: string[];
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addAreaMonitoring(regionName, connectivityStatus, accessLevel, description, linkedCampaigns);
+      return actor.addAreaMonitoring(regionName, connectivityStatus, accessLevel, description, linkedCampaigns, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['areaMonitoring'] });
@@ -427,15 +462,17 @@ export function useUpdateAreaMonitoring() {
       accessLevel,
       description,
       linkedCampaigns,
+      coordinates,
     }: {
       regionName: string;
       connectivityStatus: string;
       accessLevel: bigint;
       description: string;
       linkedCampaigns: string[];
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateAreaMonitoring(regionName, connectivityStatus, accessLevel, description, linkedCampaigns);
+      return actor.updateAreaMonitoring(regionName, connectivityStatus, accessLevel, description, linkedCampaigns, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['areaMonitoring'] });
@@ -473,6 +510,7 @@ export function useAddOutreachCamp() {
       assignedClinician,
       status,
       description,
+      coordinates,
     }: {
       name: string;
       location: string;
@@ -482,9 +520,10 @@ export function useAddOutreachCamp() {
       assignedClinician: Principal | null;
       status: string;
       description: string;
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addOutreachCamp(name, location, eventType, startDate, endDate, assignedClinician, status, description);
+      return actor.addOutreachCamp(name, location, eventType, startDate, endDate, assignedClinician, status, description, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outreachCamps'] });
@@ -508,6 +547,7 @@ export function useUpdateOutreachCamp() {
       assignedClinician,
       status,
       description,
+      coordinates,
     }: {
       id: bigint;
       name: string;
@@ -518,9 +558,10 @@ export function useUpdateOutreachCamp() {
       assignedClinician: Principal | null;
       status: string;
       description: string;
+      coordinates: Coordinates;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateOutreachCamp(id, name, location, eventType, startDate, endDate, assignedClinician, status, description);
+      return actor.updateOutreachCamp(id, name, location, eventType, startDate, endDate, assignedClinician, status, description, coordinates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outreachCamps'] });
@@ -568,6 +609,36 @@ export function useUpdateUserActivity() {
       if (!actor) throw new Error('Actor not available');
       return actor.updateUserActivity();
     },
+  });
+}
+
+// Unique Logins Tracking
+export function useRecordSuccessfulLogin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.recordSuccessfulLogin();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['uniqueLoginsCount'] });
+    },
+  });
+}
+
+export function useGetUniqueLoginsCount() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<bigint>({
+    queryKey: ['uniqueLoginsCount'],
+    queryFn: async () => {
+      if (!actor || !identity) return BigInt(0);
+      return actor.getUniqueLoginsCount();
+    },
+    enabled: !!actor && !isFetching && !!identity,
   });
 }
 
@@ -633,4 +704,3 @@ export function useMarkMessageAsRead() {
     },
   });
 }
-

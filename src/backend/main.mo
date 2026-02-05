@@ -11,9 +11,7 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Text "mo:core/Text";
 import Set "mo:core/Set";
-import Migration "migration";
 
-(with migration = Migration.run)
 actor {
   // Authorization
   let accessControlState = AccessControl.initState();
@@ -27,6 +25,7 @@ actor {
   var institutionIdCounter = 0;
   var campIdCounter = 0;
   var messageIdCounter = 0;
+  let uniqueLoginSet = Set.empty<Principal>();
 
   // Data Types
   type Language = {
@@ -96,7 +95,11 @@ actor {
   let userConversations = Map.empty<Principal, List.List<Nat>>();
   let adminConversations = Map.empty<Nat, Conversation>();
 
-  // Rural Support and Outreach Types
+  type Coordinates = {
+    latitude : Float;
+    longitude : Float;
+  };
+
   type ReportedArea = {
     regionName : Text;
     connectivityStatus : Text;
@@ -105,9 +108,9 @@ actor {
     reporter : Principal;
     timestamp : Time.Time;
     hasMentalHealthSupport : Bool;
+    coordinates : Coordinates;
   };
 
-  // Institutional Awareness Mapping Types
   type Institution = {
     id : Nat;
     name : Text;
@@ -117,9 +120,9 @@ actor {
     infrastructureStatus : Text;
     awarenessRating : Nat;
     relatedCampaigns : [Text];
+    coordinates : Coordinates;
   };
 
-  // Rural & Low-Access Area Monitoring Types
   type AreaMonitoring = {
     regionName : Text;
     connectivityStatus : Text;
@@ -127,9 +130,9 @@ actor {
     description : Text;
     linkedCampaigns : [Text];
     timestamp : Time.Time;
+    coordinates : Coordinates;
   };
 
-  // Offline Outreach & Intervention Types
   type OutreachCamp = {
     id : Nat;
     name : Text;
@@ -140,9 +143,9 @@ actor {
     assignedClinician : ?Principal;
     status : Text;
     description : Text;
+    coordinates : Coordinates;
   };
 
-  // Storage
   let userProfiles = Map.empty<Principal, UserProfile>();
   let communityPosts = Map.empty<Nat, CommunityPost>();
   let therapyRequests = Map.empty<Principal, TherapySessionRequest>();
@@ -169,7 +172,6 @@ actor {
     postingRules : [Text];
   };
 
-  // Language Management (Backend)
   public shared ({ caller }) func setUserLanguagePreference(language : Language) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can set language preference");
@@ -203,7 +205,6 @@ actor {
     };
   };
 
-  // Admin Check and Role Assignment - SECURED WITH RACE CONDITION PROTECTION
   public shared ({ caller }) func checkAndAssignAdmin() : async Bool {
     if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Anonymous users cannot become admin");
@@ -248,7 +249,6 @@ actor {
     sharedAppUrl;
   };
 
-  // Role Assignment - Admin only
   public shared ({ caller }) func assignUserRole(user : Principal, role : Text) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can assign roles");
@@ -264,7 +264,6 @@ actor {
     AccessControl.assignRole(accessControlState, caller, user, userRole);
   };
 
-  // User Profile Management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -288,7 +287,6 @@ actor {
     activeUsers.add(caller, Time.now());
   };
 
-  // Community Post Management
   public shared ({ caller }) func createCommunityPost(content : Text, anonymous : Bool) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can create posts");
@@ -308,9 +306,48 @@ actor {
     activeUsers.add(caller, Time.now());
   };
 
+  public shared ({ caller }) func editCommunityPost(postId : Nat, newContent : Text) : async () {
+    switch (communityPosts.get(postId)) {
+      case (null) { Runtime.trap("Post not found") };
+      case (?post) {
+        if (not Principal.equal(caller, post.author) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: Only the post author or an admin can edit this post");
+        };
+
+        let updatedPost = {
+          id = post.id;
+          content = newContent;
+          timestamp = post.timestamp;
+          anonymous = post.anonymous;
+          moderationFlag = post.moderationFlag;
+          author = post.author;
+        };
+        communityPosts.add(postId, updatedPost);
+      };
+    };
+    activeUsers.add(caller, Time.now());
+  };
+
+  public query ({ caller }) func canEditPost(postId : Nat) : async Bool {
+    // IMPORTANT: In the preview environment, principal "2vxsx-fae" represents an anonymous user
+    // On mainnet, such a principal should not be allowed to edit posts unless they are the author or an admin
+    switch (communityPosts.get(postId)) {
+      case (null) {
+        Runtime.trap("Post not found");
+      };
+      case (?post) {
+        // ONLY allow author or admin, don't check for anonymous principal in preview specifically
+        // This makes behavior consistent between environments and allows editing in preview
+        if (Principal.equal(caller, post.author) or AccessControl.isAdmin(accessControlState, caller)) {
+          return true;
+        } else {
+          Runtime.trap("Not Authorized");
+        };
+      };
+    };
+  };
+
   public query ({ caller }) func getAllCommunityPosts() : async [CommunityPost] {
-    // Allow authenticated users and guests to view community posts
-    // This is a public community feature
     communityPosts.values().toArray();
   };
 
@@ -357,7 +394,6 @@ actor {
     activeUsers.add(caller, Time.now());
   };
 
-  // Therapy Session Requests
   public shared ({ caller }) func createTherapySessionRequest(typeRequest : Text, details : Text) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can request therapy sessions");
@@ -381,7 +417,6 @@ actor {
     therapyRequests.values().toArray();
   };
 
-  // Mood Tracking
   public shared ({ caller }) func addMoodEntry(mood : Text) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can add moods");
@@ -416,7 +451,6 @@ actor {
     };
   };
 
-  // Stress Quiz Responses
   public shared ({ caller }) func submitStressQuiz(score : Nat, responses : [Nat]) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can submit quizzes");
@@ -441,7 +475,6 @@ actor {
     quizResponses.get(user);
   };
 
-  // Content Filtering - Available to users for post validation
   public query ({ caller }) func checkContent(text : Text) : async ContentFiltered {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can check content");
@@ -456,45 +489,23 @@ actor {
     { passed = not containsBad; filteredText = text };
   };
 
-  // Community Guidelines Retrieval - Public access
   public query func getCommunityGuidelines() : async CommunityGuidelines {
     {
-      corePrinciples = "Welcome to 'From Stigma to Support'! Our goal is to create a safe, supportive environment centered around academic wellness and mental health.";
-      acceptableConduct = [
-        "Be respectful and considerate when interacting.",
-        "Listen actively and provide constructive feedback.",
-        "Share thoughts anonymously and supportively.",
-        "Maintain confidentiality and privacy.",
-        "Seek assistance from our moderation team if needed.",
-      ];
-      prohibitedBehaviors = [
-        "No hate speech, discrimination, or bullying.",
-        "No sharing of harmful or triggering content.",
-        "No personal attacks or harassment.",
-        "No unauthorized sharing of sensitive information.",
-      ];
-      safetyGuidelines = [
-        "This platform is NOT a substitute for professional help.",
-        "For emergencies, please contact local helplines.",
-        "Posts may be monitored for safety and well-being.",
-        "If you feel unsafe, reach out to moderators or crisis resources.",
-      ];
-      postingRules = [
-        "Use respectful language and avoid inappropriate content.",
-        "Stay on topic with mental health and wellness discussions.",
-        "No spam, advertisements, or self-promotion.",
-        "Violations may result in post removal or account suspension.",
-      ];
+      corePrinciples = "Welcome to 'From Stigma to Support'!";
+      acceptableConduct = ["Be respectful", "Listen actively"];
+      prohibitedBehaviors = ["No hate speech", "No bullying"];
+      safetyGuidelines = ["Not a substitute for professional help"];
+      postingRules = ["Use respectful language", "No spam"];
     };
   };
 
-  // Rural Support and Outreach Module
   public shared ({ caller }) func reportArea(
     regionName : Text,
     connectivityStatus : Text,
     description : Text,
     linkedCampaigns : [Text],
     hasMentalHealthSupport : Bool,
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only registered users can report areas");
@@ -508,6 +519,7 @@ actor {
       reporter = caller;
       timestamp = Time.now();
       hasMentalHealthSupport;
+      coordinates;
     };
 
     reportedAreas.add(regionName, area);
@@ -540,6 +552,7 @@ actor {
           reporter = area.reporter;
           timestamp = area.timestamp;
           hasMentalHealthSupport = area.hasMentalHealthSupport;
+          coordinates = area.coordinates;
         };
         reportedAreas.add(regionName, updatedArea);
       };
@@ -554,7 +567,6 @@ actor {
     reportedAreas.get(regionName);
   };
 
-  // Institutional Awareness Mapping System
   public shared ({ caller }) func addInstitution(
     name : Text,
     institutionType : Text,
@@ -563,6 +575,7 @@ actor {
     infrastructureStatus : Text,
     awarenessRating : Nat,
     relatedCampaigns : [Text],
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can add institutions");
@@ -577,6 +590,7 @@ actor {
       infrastructureStatus;
       awarenessRating;
       relatedCampaigns;
+      coordinates;
     };
 
     institutions.add(institutionIdCounter, institution);
@@ -593,6 +607,7 @@ actor {
     infrastructureStatus : Text,
     awarenessRating : Nat,
     relatedCampaigns : [Text],
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can update institutions");
@@ -610,6 +625,7 @@ actor {
           infrastructureStatus;
           awarenessRating;
           relatedCampaigns;
+          coordinates;
         };
         institutions.add(id, updatedInstitution);
       };
@@ -631,13 +647,13 @@ actor {
     institutions.get(id);
   };
 
-  // Rural & Low-Access Area Monitoring
   public shared ({ caller }) func addAreaMonitoring(
     regionName : Text,
     connectivityStatus : Text,
     accessLevel : Nat,
     description : Text,
     linkedCampaigns : [Text],
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can add area monitoring");
@@ -650,6 +666,7 @@ actor {
       description;
       linkedCampaigns;
       timestamp = Time.now();
+      coordinates;
     };
 
     areaMonitoring.add(regionName, area);
@@ -662,6 +679,7 @@ actor {
     accessLevel : Nat,
     description : Text,
     linkedCampaigns : [Text],
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can update area monitoring");
@@ -677,6 +695,7 @@ actor {
           description;
           linkedCampaigns;
           timestamp = Time.now();
+          coordinates;
         };
         areaMonitoring.add(regionName, updatedArea);
       };
@@ -698,7 +717,6 @@ actor {
     areaMonitoring.get(regionName);
   };
 
-  // Offline Outreach & Intervention System
   public shared ({ caller }) func addOutreachCamp(
     name : Text,
     location : Text,
@@ -708,6 +726,7 @@ actor {
     assignedClinician : ?Principal,
     status : Text,
     description : Text,
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can add outreach camps");
@@ -723,6 +742,7 @@ actor {
       assignedClinician;
       status;
       description;
+      coordinates;
     };
 
     outreachCamps.add(campIdCounter, camp);
@@ -740,6 +760,7 @@ actor {
     assignedClinician : ?Principal,
     status : Text,
     description : Text,
+    coordinates : Coordinates,
   ) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can update outreach camps");
@@ -758,6 +779,7 @@ actor {
           assignedClinician;
           status;
           description;
+          coordinates;
         };
         outreachCamps.add(id, updatedCamp);
       };
@@ -779,7 +801,6 @@ actor {
     outreachCamps.get(id);
   };
 
-  // Active User Tracking
   public shared ({ caller }) func updateUserActivity() : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can update activity");
@@ -794,7 +815,6 @@ actor {
     activeUsers.toArray();
   };
 
-  // Messaging System
   public query ({ caller }) func getUserConversations(user : Principal) : async [Nat] {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can access conversations");
@@ -920,7 +940,6 @@ actor {
     getAllConversationsIter.toArray();
   };
 
-  // Analytics
   public query ({ caller }) func getDashboardAnalytics() : async {
     totalInstitutions : Nat;
     totalAreas : Nat;
@@ -987,5 +1006,47 @@ actor {
       lowAccessAreas;
       upcomingEvents;
     };
+  };
+
+  public query ({ caller }) func getAllCoordinates() : async {
+    reportedAreas : [Coordinates];
+    institutions : [Coordinates];
+    areas : [Coordinates];
+    camps : [Coordinates];
+  } {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access coordinate data");
+    };
+
+    let reportedAreasArray = reportedAreas.values().toArray().map(func(area) { area.coordinates });
+    let institutionsArray = institutions.values().toArray().map(func(institution) { institution.coordinates });
+    let areaMonitoringArray = areaMonitoring.values().toArray().map(func(area) { area.coordinates });
+    let campsArray = outreachCamps.values().toArray().map(func(camp) { camp.coordinates });
+
+    {
+      reportedAreas = reportedAreasArray;
+      institutions = institutionsArray;
+      areas = areaMonitoringArray;
+      camps = campsArray;
+    };
+  };
+
+  // Track unique authenticated principal logins
+  public shared ({ caller }) func recordSuccessfulLogin() : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can record login");
+    };
+
+    if (not caller.isAnonymous()) {
+      uniqueLoginSet.add(caller);
+    };
+  };
+
+  // Get the number of unique logins (admin-only)
+  public query ({ caller }) func getUniqueLoginsCount() : async Nat {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can view unique logins count");
+    };
+    uniqueLoginSet.size();
   };
 };

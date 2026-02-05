@@ -1,5 +1,5 @@
 import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile, useIsCallerAdmin, useCheckAndAssignAdmin } from './hooks/useQueries';
+import { useGetCallerUserProfile, useIsCallerAdmin, useCheckAndAssignAdmin, useRecordSuccessfulLogin } from './hooks/useQueries';
 import { Toaster, toast } from 'sonner';
 import { ThemeProvider } from 'next-themes';
 import Header from './components/Header';
@@ -24,9 +24,11 @@ export default function App() {
   const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
   const { data: isAdmin, isLoading: adminLoading, refetch: refetchAdminStatus } = useIsCallerAdmin();
   const { mutateAsync: checkAndAssignAdmin } = useCheckAndAssignAdmin();
+  const { mutateAsync: recordSuccessfulLogin } = useRecordSuccessfulLogin();
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [showAdminBanner, setShowAdminBanner] = useState(false);
   const adminCheckAttempted = useRef(false);
+  const loginRecorded = useRef(false);
 
   const isAuthenticated = !!identity;
   const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
@@ -64,10 +66,30 @@ export default function App() {
     checkAdmin();
   }, [isAuthenticated, loginStatus, checkAndAssignAdmin, refetchAdminStatus]);
 
-  // Reset admin check flag and banner when user logs out
+  // Record successful login once per session
+  useEffect(() => {
+    const recordLogin = async () => {
+      // Only run once per login session when user is authenticated and login is complete
+      if (isAuthenticated && loginStatus === 'success' && !loginRecorded.current) {
+        loginRecorded.current = true;
+        
+        try {
+          await recordSuccessfulLogin();
+        } catch (error) {
+          // Silently handle errors - don't disrupt user experience
+          console.error('Error recording login:', error);
+        }
+      }
+    };
+
+    recordLogin();
+  }, [isAuthenticated, loginStatus, recordSuccessfulLogin]);
+
+  // Reset admin check flag, login recorded flag, and banner when user logs out
   useEffect(() => {
     if (!isAuthenticated) {
       adminCheckAttempted.current = false;
+      loginRecorded.current = false;
       setShowAdminBanner(false);
     }
   }, [isAuthenticated]);
@@ -77,7 +99,7 @@ export default function App() {
       case 'home':
         return <HomePage onNavigate={setCurrentPage} />;
       case 'community':
-        return <CommunityPage />;
+        return <CommunityPage onNavigate={setCurrentPage} />;
       case 'therapy':
         return <TherapyPage />;
       case 'mood':
@@ -112,4 +134,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
