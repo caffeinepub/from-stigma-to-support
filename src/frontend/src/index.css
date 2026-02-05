@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.75rem;
+        
+        /* Calming blue-green-lavender theme for light mode */
+        --background: 0.98 0.01 220;
+        --foreground: 0.2 0.02 240;
+        --card: 1 0 0;
+        --card-foreground: 0.2 0.02 240;
+        --popover: 1 0 0;
+        --popover-foreground: 0.2 0.02 240;
+        
+        /* Primary: Calming blue */
+        --primary: 0.55 0.15 240;
+        --primary-foreground: 0.99 0 0;
+        
+        /* Secondary: Soft green */
+        --secondary: 0.92 0.03 160;
+        --secondary-foreground: 0.25 0.05 160;
+        
+        /* Muted: Light lavender */
+        --muted: 0.95 0.02 280;
+        --muted-foreground: 0.5 0.03 260;
+        
+        /* Accent: Gentle purple */
+        --accent: 0.88 0.08 280;
+        --accent-foreground: 0.3 0.08 280;
+        
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.99 0 0;
+        
+        --border: 0.9 0.02 240;
+        --input: 0.9 0.02 240;
+        --ring: 0.55 0.15 240;
+        
+        /* Chart colors: wellness theme */
+        --chart-1: 0.6 0.18 200;
+        --chart-2: 0.65 0.15 160;
+        --chart-3: 0.7 0.12 280;
+        --chart-4: 0.75 0.1 140;
+        --chart-5: 0.68 0.14 260;
+    }
+
+    .dark {
+        --background: 0.15 0.02 240;
+        --foreground: 0.95 0.01 240;
+        --card: 0.2 0.02 240;
+        --card-foreground: 0.95 0.01 240;
+        --popover: 0.18 0.02 240;
+        --popover-foreground: 0.95 0.01 240;
+        
+        /* Primary: Bright calming blue */
+        --primary: 0.7 0.18 240;
+        --primary-foreground: 0.15 0.02 240;
+        
+        /* Secondary: Soft green */
+        --secondary: 0.3 0.05 160;
+        --secondary-foreground: 0.9 0.02 160;
+        
+        /* Muted: Dark lavender */
+        --muted: 0.25 0.03 280;
+        --muted-foreground: 0.65 0.03 260;
+        
+        /* Accent: Purple */
+        --accent: 0.35 0.1 280;
+        --accent-foreground: 0.95 0.02 280;
+        
+        --destructive: 0.6 0.24 25;
+        --destructive-foreground: 0.15 0.02 240;
+        
+        --border: 0.3 0.02 240;
+        --input: 0.3 0.02 240;
+        --ring: 0.6 0.15 240;
+        
+        /* Chart colors: wellness theme dark */
+        --chart-1: 0.65 0.2 200;
+        --chart-2: 0.7 0.18 160;
+        --chart-3: 0.75 0.15 280;
+        --chart-4: 0.8 0.12 140;
+        --chart-5: 0.72 0.16 260;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+    
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar for webkit browsers */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        @apply bg-muted;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        @apply bg-muted-foreground/30 rounded-lg;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-muted-foreground/50;
+    }
+}
+

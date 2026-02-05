@@ -1,0 +1,18 @@
+{
+  "frontend/src/App.tsx": "Main application component with page routing, authentication state management, profile setup dialog, and admin auto-assignment that runs exactly once after successful login (when loginStatus === 'success') using a ref-based flag to prevent duplicate checks and race conditions, displays AdminPromotionBanner and toast notification immediately when admin role is granted, and updates header navigation instantly without page refresh.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including user profiles, community posts with new delete post mutation, mood tracking, stress quiz, therapy requests, content filtering, admin role checking, rural outreach, institutional mapping, area monitoring, camp management, role assignment, and dashboard analytics with proper state invalidation.",
+  "frontend/src/components/Header.tsx": "Responsive navigation header with login/logout functionality, page navigation, mobile menu support, and admin-only outreach dashboard link with shield icon indicator.",
+  "frontend/src/components/Footer.tsx": "Simple footer component with branding and attribution link to caffeine.ai.",
+  "frontend/src/components/ProfileSetupDialog.tsx": "Modal dialog for first-time user profile creation with form validation and community guidelines agreement.",
+  "frontend/src/pages/HomePage.tsx": "Landing page with hero section, breathing animation positioned below the hero image and description, feature cards for navigation, and call-to-action section for the wellness application.",
+  "frontend/src/pages/CommunityPage.tsx": "Community support page with post creation form, content filtering, anonymous post display with timestamps, and role-based delete functionality where admins can delete any post and users can delete their own posts with confirmation dialog.",
+  "frontend/src/pages/TherapyPage.tsx": "Therapy resources page with tabbed content for relaxation, art therapy, music therapy, physiotherapy, and session request form.",
+  "frontend/src/pages/MoodTrackerPage.tsx": "Mood tracking interface with mood selection icons, history display, and insights for authenticated users.",
+  "frontend/src/pages/StressQuizPage.tsx": "Interactive stress assessment quiz with progress tracking, score calculation, and personalized suggestions based on results.",
+  "frontend/src/pages/GuidelinesPage.tsx": "Community guidelines page displaying core principles, acceptable conduct, prohibited behaviors, safety guidelines, and posting rules from backend.",
+  "frontend/src/pages/HelplinePage.tsx": "Emergency resources page with crisis helplines, online mental health resources, and safety information.",
+  "frontend/src/index.css": "Global styles with OKLCH color system featuring calming blue, green, and lavender theme for wellness application.",
+  "frontend/src/pages/OutreachDashboardPage.tsx": "Comprehensive admin outreach dashboard with tabbed interface for managing institutions, rural areas, camps, and intelligence analytics with role assignment, heatmap visualization, and recommendation system.",
+  "frontend/src/components/AdminPromotionBanner.tsx": "Banner component that displays a green success message when a user is promoted to admin, with dismiss functionality and responsive design.",
+  "frontend/src/components/BreathingAnimation.tsx": "Calming breathing animation component with a pulsing blue-lavender orb that expands/contracts every 4 seconds, alternating text between \"Breathe In…\" and \"Breathe Out…\" with smooth CSS transitions, gradient pulse backgrounds, and mobile-responsive design."
+}
